@@ -4,10 +4,8 @@
 
 #include <geometry/polygon.h>
 
-namespace omg
-{
-namespace io
-{
+namespace omg {
+namespace io {
 
 Polygon readPoly(const std::string& filename);
 

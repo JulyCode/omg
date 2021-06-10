@@ -4,13 +4,11 @@
 
 #include <OpenMesh/Core/Geometry/VectorT.hh>
 
-namespace omg
-{
+namespace omg {
 
 using PolygonEdge = std::pair<std::size_t, std::size_t>;
 
-class Polygon
-{
+class Polygon {
 public:
     Polygon();
     ~Polygon();
