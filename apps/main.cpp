@@ -2,6 +2,7 @@
 
 #include <geometry/polygon.h>
 #include <io/poly_reader.h>
+#include <io/off_writer.h>
 #include <triangulation/triangle_triangulator.h>
 
 int main() {
@@ -17,4 +18,6 @@ int main() {
     std::cout << "output mesh:" << std::endl;
     std::cout << "vertices: " << mesh.n_vertices() << std::endl;
     std::cout << "triangles: " << mesh.n_faces() << std::endl;
+
+    omg::io::writeOff("../../apps/medsea.off", mesh);
 }

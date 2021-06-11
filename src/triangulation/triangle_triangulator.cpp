@@ -66,7 +66,10 @@ void TriangleTriangulator::generateMesh(const Polygon& outline, Mesh& mesh) {
     // P: don't output segment information
     // u: use triunsuitable quality check
     // p: triangulate a Planar Straight Line Graph (.poly file)
-    char args[] = "zBPup";
+    // D: conforming Delaunay
+    // a0.5: area constraint of 0.5
+    // q25: minimum angle of 25 degrees, maximum 180 - 2 * 25
+    char args[] = "zBPupDa0.5q25";
     triangulate(args, &in.io, &out.io, nullptr);
 
     out.toMesh(mesh);
@@ -135,6 +138,7 @@ void TriangleOut::toMesh(Mesh& mesh) const {
     for (int i = 0; i < io.numberofpoints; i++) {
         vertex[0] = io.pointlist[2 * i + 0];
         vertex[1] = io.pointlist[2 * i + 1];
+        vertex[2] = 0;  // 3rd component not needed
 
         vertex_handles.push_back(mesh.add_vertex(vertex));
     }
