@@ -4,12 +4,12 @@
 
 namespace omg {
 
-class TriangleTriangulator : Triangulator {
+class TriangleTriangulator : public Triangulator {
 public:
     TriangleTriangulator();
     ~TriangleTriangulator();
 
-    void generateMesh(const Polygon& outline);
+    void generateMesh(const Polygon& outline, Mesh& mesh);
 
 private:
     static int triunsuitable(double* v1, double* v2, double* v3, double area);

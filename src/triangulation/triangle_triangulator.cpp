@@ -16,6 +16,28 @@ extern "C" {
 
 namespace omg {
 
+// save triangulateio wrapper
+struct TriangleIn {
+    TriangleIn(const Polygon& outline);
+    ~TriangleIn();
+
+    const triangulateio& getData() const;
+
+    triangulateio io;
+};
+
+struct TriangleOut {
+    TriangleOut();
+    ~TriangleOut();
+
+    triangulateio& getData() const;
+
+    void toMesh(Mesh& mesh) const;
+
+    triangulateio io;
+};
+
+
 TriangleTriangulator::TriangleTriangulator() {
     // init callback function to interact with Triangle
     set_triunsuitable_callback(triunsuitable);
@@ -23,50 +45,20 @@ TriangleTriangulator::TriangleTriangulator() {
 
 TriangleTriangulator::~TriangleTriangulator() {}
 
-void TriangleTriangulator::generateMesh(const Polygon& outline) {
-    const std::vector<OpenMesh::Vec2d>& vertices = outline.getVertices();
-    const std::vector<PolygonEdge>& edges = outline.getEdges();
+void TriangleTriangulator::generateMesh(const Polygon& outline, Mesh& mesh) {
+    const std::size_t num_vertices = outline.getVertices().size();
+    const std::size_t num_edges = outline.getEdges().size();
 
     // Triangle only uses int as size type
-    if (vertices.size() == 0 || vertices.size() >= std::numeric_limits<int>::max()) {
+    if (num_vertices == 0 || num_vertices >= std::numeric_limits<int>::max()) {
         throw std::runtime_error("Invalid number of vertices in outline");
     }
-    if (edges.size() == 0 || edges.size() >= std::numeric_limits<int>::max()) {
+    if (num_edges == 0 || num_edges >= std::numeric_limits<int>::max()) {
         throw std::runtime_error("Invalid number of edges in outline");
     }
 
-    triangulateio in, out;
-
-    // initialize input struct
-    in.numberofpoints = vertices.size();
-    in.pointlist = new double[vertices.size() * 2];
-    // copy vertices
-    for (int i = 0; i < vertices.size(); i++) {
-        in.pointlist[i * 2 + 0] = vertices[i][0];
-        in.pointlist[i * 2 + 1] = vertices[i][1];
-    }
-    
-    in.numberofpointattributes = 0;
-    in.pointattributelist = nullptr;
-    in.pointmarkerlist = nullptr;
-
-    in.numberofsegments = edges.size();
-    in.segmentlist = new int[edges.size() * 2];
-    // copy segments
-    for (int i = 0; i < edges.size(); i++) {
-        in.segmentlist[i * 2 + 0] = edges[i].first;
-        in.segmentlist[i * 2 + 1] = edges[i].second;
-    }
-    in.segmentmarkerlist = nullptr;
-
-    in.numberofholes = 0;
-    in.holelist = nullptr;
-    in.numberofregions = 0;
-    in.regionlist = nullptr;
-
-    // initialize output struct
-    out.pointlist = nullptr;
-    out.trianglelist = nullptr;
+    TriangleIn in(outline);
+    TriangleOut out;
 
     // Q: no console output
     // z: use zero based indexing
@@ -75,19 +67,87 @@ void TriangleTriangulator::generateMesh(const Polygon& outline) {
     // u: use triunsuitable quality check
     // p: triangulate a Planar Straight Line Graph (.poly file)
     char args[] = "zBPup";
-    triangulate(args, &in, &out, nullptr);
+    triangulate(args, &in.io, &out.io, nullptr);
 
-    // TODO: return triangulation
-
-    // clean up
-    delete[] in.pointlist;
-    delete[] in.segmentlist;
-    trifree(out.pointlist);
-    trifree(out.trianglelist);
+    out.toMesh(mesh);
 }
 
 int TriangleTriangulator::triunsuitable(double* v1, double* v2, double* v3, double area) {
     return 0;
+}
+
+
+TriangleIn::TriangleIn(const Polygon& poly) {
+
+    const std::vector<OpenMesh::Vec2d>& vertices = poly.getVertices();
+    const std::vector<PolygonEdge>& edges = poly.getEdges();
+
+    // initialize input triangulateio struct
+    io.numberofpoints = vertices.size();
+    io.pointlist = new double[vertices.size() * 2];
+    // copy vertices
+    for (int i = 0; i < vertices.size(); i++) {
+        io.pointlist[i * 2 + 0] = vertices[i][0];
+        io.pointlist[i * 2 + 1] = vertices[i][1];
+    }
+    
+    io.numberofpointattributes = 0;
+    io.pointattributelist = nullptr;
+    io.pointmarkerlist = nullptr;
+
+    io.numberofsegments = edges.size();
+    io.segmentlist = new int[edges.size() * 2];
+    // copy segments
+    for (int i = 0; i < edges.size(); i++) {
+        io.segmentlist[i * 2 + 0] = edges[i].first;
+        io.segmentlist[i * 2 + 1] = edges[i].second;
+    }
+    io.segmentmarkerlist = nullptr;
+
+    io.numberofholes = 0;
+    io.holelist = nullptr;
+    io.numberofregions = 0;
+    io.regionlist = nullptr;
+}
+
+TriangleIn::~TriangleIn() {
+    delete[] io.pointlist;
+    delete[] io.segmentlist;
+}
+
+TriangleOut::TriangleOut() {
+    io.pointlist = nullptr;
+    io.trianglelist = nullptr;
+}
+
+TriangleOut::~TriangleOut() {
+    trifree(io.pointlist);
+    trifree(io.trianglelist);
+}
+
+void TriangleOut::toMesh(Mesh& mesh) const {
+    // convert result to OpenMesh
+    // add vertices
+    std::vector<Mesh::VertexHandle> vertex_handles;
+    vertex_handles.reserve(io.numberofpoints);
+
+    Mesh::Point vertex;
+    for (int i = 0; i < io.numberofpoints; i++) {
+        vertex[0] = io.pointlist[2 * i + 0];
+        vertex[1] = io.pointlist[2 * i + 1];
+
+        vertex_handles.push_back(mesh.add_vertex(vertex));
+    }
+
+    // add triangles
+    Mesh::VertexHandle v0, v1, v2;
+    for (int i = 0; i < io.numberoftriangles; i++) {
+        v0 = vertex_handles[io.trianglelist[3 * i + 0]];
+        v1 = vertex_handles[io.trianglelist[3 * i + 1]];
+        v2 = vertex_handles[io.trianglelist[3 * i + 2]];
+
+        mesh.add_face(v0, v1, v2);
+    }
 }
 
 }
