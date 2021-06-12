@@ -5,6 +5,8 @@ add_library(OMG ${SOURCES})
 
 target_link_libraries(OMG PRIVATE JRSTriangle)
 
+target_link_libraries(OMG PRIVATE Triangle::triangle-api)
+
 find_package(OpenMesh REQUIRED)
 target_link_libraries(OMG PRIVATE OpenMeshCore)
 
