@@ -3,16 +3,7 @@
 
 #include <limits>
 
-// defines needed for triangle.h
-#ifndef ANSI_DECLARATORS
-#define ANSI_DECLARATORS
-#endif
-#define REAL double
-#define VOID void
-extern "C" {
-    #include <Triangle/triangle.h>
-    #include <Triangle/triunsuitable_external.h>
-}
+#include <Triangle/jrs_triangle.h>
 
 namespace omg {
 
@@ -21,26 +12,26 @@ struct TriangleIn {
     TriangleIn(const Polygon& outline);
     ~TriangleIn();
 
-    const triangulateio& getData() const;
+    const jrs::triangulateio& getData() const;
 
-    triangulateio io;
+    jrs::triangulateio io;
 };
 
 struct TriangleOut {
     TriangleOut();
     ~TriangleOut();
 
-    triangulateio& getData() const;
+    jrs::triangulateio& getData() const;
 
     void toMesh(Mesh& mesh) const;
 
-    triangulateio io;
+    jrs::triangulateio io;
 };
 
 
 TriangleTriangulator::TriangleTriangulator() {
     // init callback function to interact with Triangle
-    set_triunsuitable_callback(triunsuitable);
+    jrs::set_triunsuitable_callback(triunsuitable);
 }
 
 TriangleTriangulator::~TriangleTriangulator() {}
@@ -70,7 +61,7 @@ void TriangleTriangulator::generateMesh(const Polygon& outline, Mesh& mesh) {
     // a0.5: area constraint of 0.5
     // q25: minimum angle of 25 degrees, maximum 180 - 2 * 25
     char args[] = "zBPupDa0.5q25";
-    triangulate(args, &in.io, &out.io, nullptr);
+    jrs::triangulate(args, &in.io, &out.io, nullptr);
 
     out.toMesh(mesh);
 }
@@ -124,8 +115,8 @@ TriangleOut::TriangleOut() {
 }
 
 TriangleOut::~TriangleOut() {
-    trifree(io.pointlist);
-    trifree(io.trianglelist);
+    jrs::trifree(io.pointlist);
+    jrs::trifree(io.trianglelist);
 }
 
 void TriangleOut::toMesh(Mesh& mesh) const {
