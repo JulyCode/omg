@@ -52,7 +52,18 @@ TriangleIn<io_t>::~TriangleIn() {
 template<typename io_t>
 TriangleOut<io_t>::TriangleOut() {
     io.pointlist = nullptr;
+    io.pointattributelist = nullptr;
+    io.pointmarkerlist = nullptr;
     io.trianglelist = nullptr;
+    io.triangleattributelist = nullptr;
+    io.trianglearealist = nullptr;
+    io.neighborlist = nullptr;
+    io.segmentlist = nullptr;
+    io.segmentmarkerlist = nullptr;
+    io.holelist = nullptr;
+    io.regionlist = nullptr;
+    io.edgelist = nullptr;
+    io.edgemarkerlist = nullptr;
 }
 
 template<typename io_t>
@@ -62,7 +73,12 @@ TriangleOut<io_t>::~TriangleOut() {
 }
 
 template<typename io_t>
-void TriangleOut<io_t>::toMesh(Mesh& mesh) const {
+void TriangleOut<io_t>::toMesh(Mesh& mesh) const {  // TODO: error checking
+
+    if (io.numberofcorners != 3) {
+        throw std::runtime_error("Invalid number of corners");
+    }
+
     // convert result to OpenMesh
     // add vertices
     std::vector<Mesh::VertexHandle> vertex_handles;
@@ -92,5 +108,6 @@ template class TriangleIn<jrs::triangulateio>;
 template class TriangleOut<jrs::triangulateio>;
 
 template class TriangleIn<triangleio>;
+template class TriangleOut<triangleio>;
 
 }

@@ -4,6 +4,7 @@
 #include <io/poly_reader.h>
 #include <io/off_writer.h>
 #include <triangulation/triangle_triangulator.h>
+#include <triangulation/acute_triangulator.h>
 
 int main() {
     omg::Polygon poly = omg::io::readPoly("../../apps/medsea.poly");
@@ -19,5 +20,13 @@ int main() {
     std::cout << "vertices: " << mesh.n_vertices() << std::endl;
     std::cout << "triangles: " << mesh.n_faces() << std::endl;
 
-    omg::io::writeOff("../../apps/medsea.off", mesh);
+    omg::Mesh mesh2;
+    omg::ACuteTriangulator tri2;
+    tri2.generateMesh(poly, mesh2);
+
+    std::cout << "output mesh:" << std::endl;
+    std::cout << "vertices: " << mesh2.n_vertices() << std::endl;
+    std::cout << "triangles: " << mesh2.n_faces() << std::endl;
+
+    omg::io::writeOff("../../apps/medsea2.off", mesh2);
 }
