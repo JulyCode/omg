@@ -45,7 +45,7 @@ static void readVertices(std::ifstream& file, VertexBuffer& vb, std::size_t num_
     vb.zero_based = (idx == 0);
 
     // read rest of vertices
-    for (int i = 1; i < num_vertices; i++) {
+    for (std::size_t i = 1; i < num_vertices; i++) {
         readVertex(file, idx, vertex);
         vb.vertices.push_back(vertex);
     }
@@ -106,7 +106,7 @@ Polygon readPoly(const std::string& filename) {
     std::size_t start_vertex, end_vertex;
     PolygonEdge edge;
 
-    for (int i = 0; i < num_segments; i++) {
+    for (std::size_t i = 0; i < num_segments; i++) {
 
         ignoreComments(file);
         file >> ignore >> start_vertex >> end_vertex;
