@@ -1,18 +1,20 @@
 
 #include "triangulator.h"
 
+#include <geometry/types.h>
+
 namespace omg {
 
 void Triangulator::restrictToInt(const Polygon& outline) const {
     const std::size_t num_vertices = outline.getVertices().size();
     const std::size_t num_edges = outline.getEdges().size();
 
-    // throw error if sizes exceed 32 bits
-    if (num_vertices == 0 || num_vertices >= std::numeric_limits<int>::max()) {
-        throw std::runtime_error("Invalid number of vertices in outline");
+    // throw error if sizes exceed ints
+    if (!fitsInt(num_vertices)) {
+        throw std::runtime_error("Too many vertices in outline");
     }
-    if (num_edges == 0 || num_edges >= std::numeric_limits<int>::max()) {
-        throw std::runtime_error("Invalid number of edges in outline");
+    if (!fitsInt(num_edges)) {
+        throw std::runtime_error("Too many edges in outline");
     }
 }
 

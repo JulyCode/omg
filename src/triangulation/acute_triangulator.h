@@ -20,7 +20,7 @@ private:
 
     void check(int status_code);
 
-    static int triunsuitable(double* v1, double* v2, double* v3, double area);
+    static int triunsuitable(real_t* v1, real_t* v2, real_t* v3, real_t area);
 };
 
 }

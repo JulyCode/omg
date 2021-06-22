@@ -10,12 +10,12 @@ namespace omg {
 template<typename io_t>
 TriangleIn<io_t>::TriangleIn(const Polygon& poly) {
 
-    const std::vector<OpenMesh::Vec2d>& vertices = poly.getVertices();
+    const std::vector<vec_t>& vertices = poly.getVertices();
     const std::vector<PolygonEdge>& edges = poly.getEdges();
 
     // initialize input triangulateio struct
     io.numberofpoints = vertices.size();
-    io.pointlist = new double[vertices.size() * 2];
+    io.pointlist = new real_t[vertices.size() * 2];
     // copy vertices
     for (int i = 0; i < vertices.size(); i++) {
         io.pointlist[i * 2 + 0] = vertices[i][0];

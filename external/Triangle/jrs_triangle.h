@@ -10,6 +10,6 @@ namespace jrs {  // wrap Triangle in a C++ namespace to avoid conflicts
 
 #include "triangle.h"
 
-void set_triunsuitable_callback(int (*callback) (double* v1, double* v2, double* v3, double area));
+void set_triunsuitable_callback(int (*callback) (REAL* v1, REAL* v2, REAL* v3, REAL area));
 
 }

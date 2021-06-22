@@ -14,16 +14,18 @@
 #include <fpu_control.h>
 #endif /* LINUX */
 
+#define REAL double
+
 namespace jrs {  // wrap Triangle in a C++ namespace to avoid conflicts
 
-static int (*triunsuitable_callback) (double* v1, double* v2, double* v3, double area);  // callback function for external use
+static int (*triunsuitable_callback) (REAL* v1, REAL* v2, REAL* v3, REAL area);  // callback function for external use
 
-void set_triunsuitable_callback(int (*callback) (double* v1, double* v2, double* v3, double area))
+void set_triunsuitable_callback(int (*callback) (REAL* v1, REAL* v2, REAL* v3, REAL area))
 {
     triunsuitable_callback = callback;
 }
 
-int triunsuitable(double* triorg, double* tridest, double* triapex, double area)  // triunsuitable used in triangle.c is implemented here
+int triunsuitable(REAL* triorg, REAL* tridest, REAL* triapex, REAL area)  // triunsuitable used in triangle.c is implemented here
 {
     if (triunsuitable_callback)
     {
@@ -32,10 +34,10 @@ int triunsuitable(double* triorg, double* tridest, double* triapex, double area)
     else
     {
         // default behaviour copied from triangle.c
-        double dxoa, dxda, dxod;
-        double dyoa, dyda, dyod;
-        double oalen, dalen, odlen;
-        double maxlen;
+        REAL dxoa, dxda, dxod;
+        REAL dyoa, dyda, dyod;
+        REAL oalen, dalen, odlen;
+        REAL maxlen;
 
         dxoa = triorg[0] - triapex[0];
         dyoa = triorg[1] - triapex[1];
