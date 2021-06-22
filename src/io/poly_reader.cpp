@@ -1,6 +1,7 @@
 #include "poly_reader.h"
 
 #include <fstream>
+#include <filesystem>
 
 #include <OpenMesh/Core/Geometry/VectorT.hh>
 
@@ -52,7 +53,9 @@ static void readVertices(std::ifstream& file, VertexBuffer& vb, std::size_t num_
 }
 
 Polygon readPoly(const std::string& filename) {
-    if (!filename.ends_with(".poly")) {
+
+    std::filesystem::path filepath(filename);
+    if (filepath.extension() != ".poly") {
         throw std::runtime_error("Wrong file format: " + filename + " expected: .poly");
     }
 

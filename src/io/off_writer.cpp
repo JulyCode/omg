@@ -1,13 +1,16 @@
 
 #include <OpenMesh/Core/IO/MeshIO.hh>
 
+#include <filesystem>
+
 #include "off_writer.h"
 
 namespace omg {
 namespace io {
 
 void writeOff(const std::string& filename, const Mesh& mesh) {
-    if (!filename.ends_with(".off")) {  // TODO: useless restriction, but for now ...
+    std::filesystem::path filepath(filename);
+    if (filepath.extension() != ".off") {  // TODO: useless restriction, but for now ...
         throw std::runtime_error("Wrong file format: " + filename + " expected: .off");
     }
 
