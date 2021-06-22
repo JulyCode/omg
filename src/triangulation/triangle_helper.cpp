@@ -84,11 +84,10 @@ void TriangleOut<io_t>::toMesh(Mesh& mesh) const {  // TODO: error checking
     std::vector<Mesh::VertexHandle> vertex_handles;
     vertex_handles.reserve(io.numberofpoints);
 
-    Mesh::Point vertex;
+    Mesh::Point vertex(0);
     for (int i = 0; i < io.numberofpoints; i++) {
         vertex[0] = io.pointlist[2 * i + 0];
         vertex[1] = io.pointlist[2 * i + 1];
-        vertex[2] = 0;  // 3rd component not needed
 
         vertex_handles.push_back(mesh.add_vertex(vertex));
     }

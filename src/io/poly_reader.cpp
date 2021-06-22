@@ -38,7 +38,7 @@ static void readVertices(std::ifstream& file, VertexBuffer& vb, std::size_t num_
     vb.vertices.reserve(num_vertices);
     
     std::size_t idx;
-    vec_t vertex;
+    vec_t vertex(0);
 
     // read first vertex and check if indices are zero based
     readVertex(file, idx, vertex);
@@ -54,8 +54,9 @@ static void readVertices(std::ifstream& file, VertexBuffer& vb, std::size_t num_
 
 Polygon readPoly(const std::string& filename) {
 
-    std::filesystem::path filepath(filename);
-    if (filepath.extension() != ".poly") {
+    const std::filesystem::path file_path(filename);
+
+    if (file_path.extension() != ".poly") {
         throw std::runtime_error("Wrong file format: " + filename + " expected: .poly");
     }
 
@@ -77,13 +78,13 @@ Polygon readPoly(const std::string& filename) {
     VertexBuffer v_buf;
     if (num_vertices == 0) {
 
-        // create name of .node file
-        std::string node_name = filename.substr(0, filename.size() - std::string(".poly").size());
-        node_name += ".node";
+        // create path of .node file
+        std::filesystem::path node_path = file_path;
+        node_path.replace_extension(".node");
 
-        std::ifstream node_file(node_name);
+        std::ifstream node_file(node_path);
         if (!node_file.good()) {
-            throw std::runtime_error("Error reading file: " + node_name);
+            throw std::runtime_error("Error reading file: " + node_path.string());
         }
 
         ignoreComments(node_file);
