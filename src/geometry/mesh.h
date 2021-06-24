@@ -7,7 +7,7 @@
 namespace omg {
 
 struct MeshTraits : public OpenMesh::DefaultTraits {
-    typedef vec_t Point;
+    typedef vec3_t Point;
     typedef real_t Scalar;
 };
 

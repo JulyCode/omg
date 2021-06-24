@@ -49,7 +49,7 @@ int ACuteTriangulator::triunsuitable(double* v1, double* v2, double* v3, double 
     return 0;
 }
 
-void ACuteTriangulator::check(int status_code) {
+void ACuteTriangulator::check(int status_code) const {
     std::string msg;
     switch (status_code) {
         case TRI_OK:

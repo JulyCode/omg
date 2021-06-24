@@ -18,7 +18,7 @@ public:
 private:
     context* ctx;
 
-    void check(int status_code);
+    void check(int status_code) const;
 
     static int triunsuitable(real_t* v1, real_t* v2, real_t* v3, real_t area);
 };

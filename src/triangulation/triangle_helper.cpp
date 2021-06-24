@@ -10,7 +10,7 @@ namespace omg {
 template<typename io_t>
 TriangleIn<io_t>::TriangleIn(const Polygon& poly) {
 
-    const std::vector<vec_t>& vertices = poly.getVertices();
+    const std::vector<vec2_t>& vertices = poly.getVertices();
     const std::vector<PolygonEdge>& edges = poly.getEdges();
 
     // initialize input triangulateio struct

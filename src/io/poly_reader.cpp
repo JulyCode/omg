@@ -9,7 +9,7 @@ namespace omg {
 namespace io {
 
 struct VertexBuffer {
-    std::vector<vec_t> vertices;
+    std::vector<vec2_t> vertices;
     bool zero_based;
 };
 
@@ -23,7 +23,7 @@ static void ignoreComments(std::ifstream& file) {
     }
 }
 
-static void readVertex(std::ifstream& file, std::size_t& idx_out, vec_t& v_out) {
+static void readVertex(std::ifstream& file, std::size_t& idx_out, vec2_t& v_out) {
     ignoreComments(file);
     std::string ignore;
     file >> idx_out >> v_out[0] >> v_out[1];  // read idx, x, y
@@ -38,7 +38,7 @@ static void readVertices(std::ifstream& file, VertexBuffer& vb, std::size_t num_
     vb.vertices.reserve(num_vertices);
     
     std::size_t idx;
-    vec_t vertex(0);
+    vec2_t vertex(0);
 
     // read first vertex and check if indices are zero based
     readVertex(file, idx, vertex);
