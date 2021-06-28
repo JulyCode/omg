@@ -47,6 +47,11 @@ void TriangleTriangulator::generateMesh(const Polygon& outline, Mesh& out_mesh) 
 }
 
 int TriangleTriangulator::triunsuitable(double* v1, double* v2, double* v3, double area) {
+    // TODO
+    (void) v1;
+    (void) v2;
+    (void) v3;
+    (void) area;
     return 0;
 }
 
@@ -118,7 +123,7 @@ char* TriangleArgs::toString() {
 
     if (weighted == Weights::MODE_1) {
         s += "w";
-    } else if (weighted == Weights::MODE_1) {
+    } else if (weighted == Weights::MODE_2) {
         s += "W";
     }
 
@@ -158,7 +163,7 @@ char* TriangleArgs::toString() {
 
     // copy arguments to new char[]
     args = new char[s.size() + 1];
-    for (int i = 0; i < s.size(); i++) {
+    for (std::size_t i = 0; i < s.size(); i++) {
         args[i] = s[i];
     }
     args[s.size()] = '\0';

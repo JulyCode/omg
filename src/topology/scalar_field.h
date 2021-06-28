@@ -47,7 +47,7 @@ private:
 template<typename T>
 ScalarField<T>::ScalarField(const AxisAlignedBoundingBox& aabb, const size2_t& grid_size)
     : aabb(aabb), grid_size(grid_size), cell_size((aabb.max - aabb.min) / (grid_size - vec2_t(1))) {
-        
+
     if (grid_size[0] <= 1 || grid_size[1] <= 1) {
         throw std::runtime_error("grid size must be at least 2x2");
     }

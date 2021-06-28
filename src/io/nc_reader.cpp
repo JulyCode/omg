@@ -28,7 +28,8 @@ static netCDF::NcVar getAndCheckVar(const netCDF::NcFile& data_file, const std::
     std::string unit;
     attribute.getValues(unit);
     if (unit != expected_unit) {
-        throw std::runtime_error("Variable \"" + var_name + "\" has the wrong unit, expected: " + expected_unit + ", found: " + unit);
+        throw std::runtime_error("Variable \"" + var_name + "\" has the wrong unit, expected: "
+                                + expected_unit + ", found: " + unit);
     }
 
     // check if the data type is as expected
@@ -38,7 +39,7 @@ static netCDF::NcVar getAndCheckVar(const netCDF::NcFile& data_file, const std::
     }
 
     // check if the dimension count is as expected
-    if (var.getDimCount() != expected_dim_count) {
+    if (static_cast<std::size_t>(var.getDimCount()) != expected_dim_count) {
         throw std::runtime_error("Variable \"" + var_name + "\" has the wrong dimension, expected: "
                                 + std::to_string(expected_dim_count) + ", found: " + std::to_string(var.getDimCount()));
     }
@@ -60,7 +61,7 @@ static std::size_t getClosestIndexBelow(const netCDF::NcVar& var, real_t coordin
         throw std::runtime_error("Only one-dimensional data is allowed");
     }
     const std::size_t dim = var.getDim(0).getSize();
-    
+
     const real_t c0 = readCoord(var, 0);
     const real_t c1 = readCoord(var, dim - 1);
 
@@ -117,7 +118,7 @@ ScalarField<int16_t> read_netCDF(const std::string& filename, const AxisAlignedB
 
         // latitude coordinates for the sample points of the elevation grid
         const netCDF::NcVar latitude = getAndCheckVar(data_file, "lat", "degrees_north", netCDF::ncDouble, 1);
-        
+
         // longitude coordinates for the sample points of the elevation grid
         const netCDF::NcVar longitude = getAndCheckVar(data_file, "lon", "degrees_east", netCDF::ncDouble, 1);
 

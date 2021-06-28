@@ -46,6 +46,11 @@ void ACuteTriangulator::generateMesh(const Polygon& outline, Mesh& out_mesh) {
 }
 
 int ACuteTriangulator::triunsuitable(double* v1, double* v2, double* v3, double area) {
+    // TODO
+    (void) v1;
+    (void) v2;
+    (void) v3;
+    (void) area;
     return 0;
 }
 

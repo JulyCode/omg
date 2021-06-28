@@ -9,7 +9,7 @@ namespace omg {
 
 template<typename io_t>
 struct TriangleIn {
-    TriangleIn(const Polygon& outline);
+    explicit TriangleIn(const Polygon& outline);
     ~TriangleIn();
 
     io_t io;

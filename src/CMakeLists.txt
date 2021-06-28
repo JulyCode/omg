@@ -15,3 +15,10 @@ target_link_libraries(OMG PRIVATE netcdf-cxx4)
 
 target_include_directories(OMG PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(OMG PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../external")
+
+# enable all warnings
+if(MSVC)
+  target_compile_options(OMG PRIVATE /W4)
+else()
+  target_compile_options(OMG PRIVATE -Wall -Wextra -pedantic)
+endif()

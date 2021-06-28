@@ -33,7 +33,7 @@ inline size2_t toSize2(const vec2_t& v) {
 
 
 constexpr bool fitsInt(std::size_t s) {
-    return s < std::numeric_limits<int>::max();
+    return s < static_cast<std::size_t>(std::numeric_limits<int>::max());
 }
 
 }

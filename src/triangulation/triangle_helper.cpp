@@ -17,11 +17,11 @@ TriangleIn<io_t>::TriangleIn(const Polygon& poly) {
     io.numberofpoints = vertices.size();
     io.pointlist = new real_t[vertices.size() * 2];
     // copy vertices
-    for (int i = 0; i < vertices.size(); i++) {
+    for (std::size_t i = 0; i < vertices.size(); i++) {
         io.pointlist[i * 2 + 0] = vertices[i][0];
         io.pointlist[i * 2 + 1] = vertices[i][1];
     }
-    
+
     io.numberofpointattributes = 0;
     io.pointattributelist = nullptr;
     io.pointmarkerlist = nullptr;
@@ -29,7 +29,7 @@ TriangleIn<io_t>::TriangleIn(const Polygon& poly) {
     io.numberofsegments = edges.size();
     io.segmentlist = new int[edges.size() * 2];
     // copy segments
-    for (int i = 0; i < edges.size(); i++) {
+    for (std::size_t i = 0; i < edges.size(); i++) {
         io.segmentlist[i * 2 + 0] = edges[i].first;
         io.segmentlist[i * 2 + 1] = edges[i].second;
     }

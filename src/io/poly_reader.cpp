@@ -36,7 +36,7 @@ static void readVertices(std::ifstream& file, VertexBuffer& vb, std::size_t num_
     }
 
     vb.vertices.reserve(num_vertices);
-    
+
     std::size_t idx;
     vec2_t vertex(0);
 
@@ -104,7 +104,7 @@ Polygon readPoly(const std::string& filename) {
     // read segments info
     std::size_t num_segments;
     file >> num_segments >> num_boundary_markers;
-    
+
     // read segments
     std::string ignore;
     std::size_t start_vertex, end_vertex;

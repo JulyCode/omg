@@ -7,6 +7,9 @@ namespace omg {
 
 class Triangulator {  // TODO: does triangulation work with spherical coordinates?
 public:
+    Triangulator() {}
+    virtual ~Triangulator() {}
+
     virtual void generateMesh(const Polygon& outline, Mesh& out_mesh) = 0;
 
 protected:

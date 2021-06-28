@@ -6,3 +6,5 @@ out
 
 *.bin32
 *.nc
+
+CPPLINT.cfg
