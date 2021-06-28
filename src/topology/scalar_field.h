@@ -18,7 +18,9 @@ public:
 
     ~ScalarField() {}
 
-    T getValue(vec2_t point) const;
+    // specify type only used for interpolation
+    template<typename S = T>
+    S getValue(vec2_t point) const;
 
     inline const AxisAlignedBoundingBox& getBoundingBox() const { return aabb; }
 
@@ -53,7 +55,8 @@ ScalarField<T>::ScalarField(const AxisAlignedBoundingBox& aabb, const size2_t& g
 }
 
 template<typename T>
-T ScalarField<T>::getValue(vec2_t point) const {  // TODO: maybe use different interpolations?
+template<typename S>
+S ScalarField<T>::getValue(vec2_t point) const {  // TODO: maybe use different interpolations?
     // bi-linear interpolation according to https://en.wikipedia.org/wiki/Bilinear_interpolation
 
     if (point[0] < aabb.min[0] || point[1] < aabb.min[1] || point[0] > aabb.max[0] || point[1] > aabb.max[1]) {
@@ -72,11 +75,11 @@ T ScalarField<T>::getValue(vec2_t point) const {  // TODO: maybe use different i
     const vec2_t min_corner = aabb.min + toVec2(min_idx) * cell_size;
     const vec2_t max_corner = min_corner + cell_size;
 
-    // get values (without bounds checks)
-    const T& f11 = grid_values[min_idx[0] +      min_idx[1]      * grid_size[0]];
-    const T& f21 = grid_values[min_idx[0] + 1 +  min_idx[1]      * grid_size[0]];
-    const T& f22 = grid_values[min_idx[0] + 1 + (min_idx[1] + 1) * grid_size[0]];
-    const T& f12 = grid_values[min_idx[0] +     (min_idx[1] + 1) * grid_size[0]];
+    // get values (without bounds checks) and convert to interpolation type
+    const S f11 = static_cast<S>(grid_values[ min_idx[0]      * grid_size[1] + min_idx[1]    ]);
+    const S f21 = static_cast<S>(grid_values[(min_idx[0] + 1) * grid_size[1] + min_idx[1]    ]);
+    const S f12 = static_cast<S>(grid_values[ min_idx[0]      * grid_size[1] + min_idx[1] + 1]);
+    const S f22 = static_cast<S>(grid_values[(min_idx[0] + 1) * grid_size[1] + min_idx[1] + 1]);
 
     // compute coefficients for interpolation
     const real_t div = (max_corner[0] - min_corner[0]) * (max_corner[1] - min_corner[1]);
@@ -93,7 +96,7 @@ inline std::size_t ScalarField<T>::linearIndex(size2_t idx) const {
             const std::string s2 = std::to_string(grid_size[0]) + ", " + std::to_string(grid_size[1]);
             throw std::out_of_range("Index (" + s1 + ") is out of range (" + s2 + ")");
         }
-        return idx[0] + idx[1] * grid_size[0];
+        return idx[0] * grid_size[1] + idx[1];
     }
 
 }
