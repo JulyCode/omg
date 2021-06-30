@@ -8,7 +8,8 @@ namespace omg {
 // save wrapper for triangulateio and triangleio
 
 template<typename io_t>
-struct TriangleIn {
+class TriangleIn {
+public:
     explicit TriangleIn(const Polygon& outline);
     ~TriangleIn();
 
@@ -16,7 +17,8 @@ struct TriangleIn {
 };
 
 template<typename io_t>
-struct TriangleOut {
+class TriangleOut {
+public:
     TriangleOut();
     ~TriangleOut();
 

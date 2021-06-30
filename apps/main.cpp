@@ -7,7 +7,7 @@
 #include <triangulation/triangle_triangulator.h>
 #include <triangulation/acute_triangulator.h>
 #include <size_function/constant_size.h>
-#include <size_function/test_size.h>
+// #include <size_function/test_size.h>
 
 int main() {
 
