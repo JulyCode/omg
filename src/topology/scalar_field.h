@@ -16,21 +16,25 @@ public:
     // so sample points lie at the corners of cells, not in the center
     ScalarField(const AxisAlignedBoundingBox& aabb, const size2_t& grid_size);
 
-    ~ScalarField() {}
+    virtual ~ScalarField() {}
 
     // specify type only used for interpolation
     template<typename S = T>
-    S getValue(vec2_t point) const;
+    S getValue(const vec2_t& point) const;
 
     inline const AxisAlignedBoundingBox& getBoundingBox() const { return aabb; }
+    inline const size2_t& getGridSize() const { return grid_size; }
 
-    inline const T& grid(size2_t idx) const { return grid_values[linearIndex(idx)]; }
-    inline T& grid(size2_t idx) { return grid_values[linearIndex(idx)]; }
+    inline const T& grid(std::size_t i, std::size_t j) const { return grid(size2_t(i, j)); }
+    inline T& grid(std::size_t i, std::size_t j) { return grid(size2_t(i, j)); }
+
+    inline const T& grid(const size2_t& idx) const { return grid_values[linearIndex(idx)]; }
+    inline T& grid(const size2_t& idx) { return grid_values[linearIndex(idx)]; }
 
     inline const std::vector<T>& grid() const { return grid_values; }
     inline std::vector<T>& grid() { return grid_values; }
 
-    inline std::size_t linearIndex(size2_t idx) const;
+    inline std::size_t linearIndex(const size2_t& idx) const;
 
 private:
     const AxisAlignedBoundingBox aabb;
@@ -56,7 +60,7 @@ ScalarField<T>::ScalarField(const AxisAlignedBoundingBox& aabb, const size2_t& g
 
 template<typename T>
 template<typename S>
-S ScalarField<T>::getValue(vec2_t point) const {  // TODO: maybe use different interpolations?
+S ScalarField<T>::getValue(const vec2_t& point) const {  // TODO: maybe use different interpolations?
     // bi-linear interpolation according to https://en.wikipedia.org/wiki/Bilinear_interpolation
 
     if (point[0] < aabb.min[0] || point[1] < aabb.min[1] || point[0] > aabb.max[0] || point[1] > aabb.max[1]) {
@@ -90,7 +94,7 @@ S ScalarField<T>::getValue(vec2_t point) const {  // TODO: maybe use different i
 }
 
 template<typename T>
-inline std::size_t ScalarField<T>::linearIndex(size2_t idx) const {
+inline std::size_t ScalarField<T>::linearIndex(const size2_t& idx) const {
         if (idx[0] >= grid_size[0] || idx[1] >= grid_size[1]) {
             const std::string s1 = std::to_string(idx[0]) + ", " + std::to_string(idx[1]);
             const std::string s2 = std::to_string(grid_size[0]) + ", " + std::to_string(grid_size[1]);
