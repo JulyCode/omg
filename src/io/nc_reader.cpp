@@ -112,6 +112,8 @@ ScalarField<int16_t> read_netCDF(const std::string& filename) {
 }
 
 ScalarField<int16_t> read_netCDF(const std::string& filename, const AxisAlignedBoundingBox& aabb) {
+    // TODO: support GEBCO_08
+
     try {
         // open netcdf file
         const netCDF::NcFile data_file(filename, netCDF::NcFile::read);
@@ -137,7 +139,7 @@ ScalarField<int16_t> read_netCDF(const std::string& filename, const AxisAlignedB
 
         // section of the data to be read
         size2_t from_idx(0);
-        size2_t to_idx(lat_dim.getSize(), lon_dim.getSize());  // exclusive
+        size2_t to_idx(lon_dim.getSize(), lat_dim.getSize());  // exclusive
 
         if (to_idx[0] < 2 || to_idx[1] < 2) {
             throw std::runtime_error("The elevation grid has to have at least 2x2 values");
@@ -145,11 +147,11 @@ ScalarField<int16_t> read_netCDF(const std::string& filename, const AxisAlignedB
 
         // only read the part according to aabb
         if (&aabb != &EVERYTHING) {
-            from_idx[0] = getClosestIndexBelow(latitude, aabb.min[0]);
-            from_idx[1] = getClosestIndexBelow(longitude, aabb.min[1]);
+            from_idx[0] = getClosestIndexBelow(longitude, aabb.min[0]);
+            from_idx[1] = getClosestIndexBelow(latitude, aabb.min[1]);
 
-            to_idx[0] = getClosestIndexBelow(latitude, aabb.max[0]) + 2;  // + 2 to get above and exclusive
-            to_idx[1] = getClosestIndexBelow(longitude, aabb.max[1]) + 2;
+            to_idx[0] = getClosestIndexBelow(longitude, aabb.max[0]) + 2;  // + 2 to get above and exclusive
+            to_idx[1] = getClosestIndexBelow(latitude, aabb.max[1]) + 2;
         }
 
         const size2_t grid_size = to_idx - from_idx;
@@ -157,14 +159,14 @@ ScalarField<int16_t> read_netCDF(const std::string& filename, const AxisAlignedB
 
         // read boundary coordinates (assumes coordinates are ordered ascending)
         AxisAlignedBoundingBox real_aabb;  // the actual bb of the data read may be a little bit larger than requested
-        real_aabb.min = vec2_t(readCoord(latitude, from_idx[0]), readCoord(longitude, from_idx[1]));
-        real_aabb.max = vec2_t(readCoord(latitude, to_idx[0] - 1), readCoord(longitude, to_idx[1] - 1));
+        real_aabb.min = vec2_t(readCoord(longitude, from_idx[0]), readCoord(latitude, from_idx[1]));
+        real_aabb.max = vec2_t(readCoord(longitude, to_idx[0] - 1), readCoord(latitude, to_idx[1] - 1));
 
         omg::ScalarField<int16_t> topo(real_aabb, grid_size);
 
         // read topography data
-        const std::vector<std::size_t> start = {from_idx[0], from_idx[1]};
-        const std::vector<std::size_t> count = {to_idx[0] - from_idx[0], to_idx[1] - from_idx[1]};
+        const std::vector<std::size_t> start = {from_idx[1], from_idx[0]};
+        const std::vector<std::size_t> count = {to_idx[1] - from_idx[1], to_idx[0] - from_idx[0]};
         elevation.getVar(start, count, topo.grid().data());
 
         return topo;

@@ -93,10 +93,10 @@ S ScalarField<T>::getValue(const vec2_t& point) const {
     const vec2_t max_corner = min_corner + cell_size;
 
     // get values (without bounds checks) and convert to interpolation type
-    const S f11 = static_cast<S>(grid_values[ min_idx[0]      * grid_size[1] + min_idx[1]    ]);
-    const S f21 = static_cast<S>(grid_values[(min_idx[0] + 1) * grid_size[1] + min_idx[1]    ]);
-    const S f12 = static_cast<S>(grid_values[ min_idx[0]      * grid_size[1] + min_idx[1] + 1]);
-    const S f22 = static_cast<S>(grid_values[(min_idx[0] + 1) * grid_size[1] + min_idx[1] + 1]);
+    const S f11 = static_cast<S>(grid_values[min_idx[0]     +  min_idx[1]      * grid_size[0]]);
+    const S f21 = static_cast<S>(grid_values[min_idx[0] + 1 +  min_idx[1]      * grid_size[0]]);
+    const S f12 = static_cast<S>(grid_values[min_idx[0]     + (min_idx[1] + 1) * grid_size[0]]);
+    const S f22 = static_cast<S>(grid_values[min_idx[0] + 1 + (min_idx[1] + 1) * grid_size[0]]);
 
     vec2_t factor = (point - min_corner) / (max_corner - min_corner);
 
@@ -110,7 +110,7 @@ inline std::size_t ScalarField<T>::linearIndex(const size2_t& idx) const {
         const std::string s2 = std::to_string(grid_size[0]) + ", " + std::to_string(grid_size[1]);
         throw std::out_of_range("Index (" + s1 + ") is out of range (" + s2 + ")");
     }
-    return idx[0] * grid_size[1] + idx[1];
+    return idx[0] + idx[1] * grid_size[0];
 }
 
 template<typename T>
