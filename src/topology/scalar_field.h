@@ -23,13 +23,12 @@ public:
 
     // specify type only used for interpolation
     template<typename Type = DefaultType,
-
              // real interpolation type to replace DefaultType
-             typename S = typename std::conditional<std::is_same<Type, DefaultType>::value, T, Type>::type,
-             // if a non floating point type is implicitly used, show a warning
-             bool type_warning = std::is_same<Type, DefaultType>::value && !std::is_floating_point<S>::value>
+             typename S = typename std::conditional<std::is_same<Type, DefaultType>::value, T, Type>::type>
 
     S getValue(const vec2_t& point) const;
+
+    vec2_t getGradient(const vec2_t& point) const;
 
     inline const AxisAlignedBoundingBox& getBoundingBox() const { return aabb; }
     inline const size2_t& getGridSize() const { return grid_size; }
@@ -55,6 +54,10 @@ private:
 
     template<typename S>
     inline S bilinearInterpolation(const S& f11, const S& f12, const S& f21, const S& f22, vec2_t factor) const;
+
+    inline size2_t getSurroundingCell(const vec2_t& point, vec2_t& min, vec2_t& max) const;
+
+    vec2_t computeGradient(const size2_t idx) const;
 };
 
 
@@ -71,32 +74,40 @@ ScalarField<T>::ScalarField(const AxisAlignedBoundingBox& aabb, const size2_t& g
 }
 
 template<typename T>
-template<typename Type, typename S, bool type_warning>
+template<typename Type, typename S>
 S ScalarField<T>::getValue(const vec2_t& point) const {
 
-    static_assert(!type_warning, "implicit non floating point interpolation used");
+    // if a non floating point type is implicitly used, show a warning
+    static_assert(!std::is_same<Type, DefaultType>::value || std::is_floating_point<S>::value,
+                  "implicit non floating point interpolation used");
 
-    if (point[0] < aabb.min[0] || point[1] < aabb.min[1] || point[0] > aabb.max[0] || point[1] > aabb.max[1]) {
-        throw std::runtime_error("Trying to access scalar field out of bounds");
-    }
-
-    // calculate min index including border case
-    size2_t min_idx = toSize2((point - aabb.min) / cell_size);
-    if (min_idx[0] == grid_size[0] - 1) {
-        min_idx[0]--;
-    }
-    if (min_idx[1] == grid_size[1] - 1) {
-        min_idx[1]--;
-    }
-
-    const vec2_t min_corner = aabb.min + toVec2(min_idx) * cell_size;
-    const vec2_t max_corner = min_corner + cell_size;
+    vec2_t min_corner(0), max_corner(0);
+    const size2_t min_idx = getSurroundingCell(point, min_corner, max_corner);
 
     // get values (without bounds checks) and convert to interpolation type
     const S f11 = static_cast<S>(grid_values[min_idx[0]     +  min_idx[1]      * grid_size[0]]);
-    const S f21 = static_cast<S>(grid_values[min_idx[0] + 1 +  min_idx[1]      * grid_size[0]]);
     const S f12 = static_cast<S>(grid_values[min_idx[0]     + (min_idx[1] + 1) * grid_size[0]]);
+    const S f21 = static_cast<S>(grid_values[min_idx[0] + 1 +  min_idx[1]      * grid_size[0]]);
     const S f22 = static_cast<S>(grid_values[min_idx[0] + 1 + (min_idx[1] + 1) * grid_size[0]]);
+
+    vec2_t factor = (point - min_corner) / (max_corner - min_corner);
+
+    return bilinearInterpolation(f11, f12, f21, f22, factor);
+}
+
+template<typename T>
+vec2_t ScalarField<T>::getGradient(const vec2_t& point) const {
+
+    static_assert(std::is_convertible<T, real_t>::value, "gradient is only defined on scalar values");
+
+    vec2_t min_corner(0), max_corner(0);
+    const size2_t min_idx = getSurroundingCell(point, min_corner, max_corner);
+
+    // get gradient values
+    const vec2_t f11 = computeGradient(min_idx + size2_t(0, 0));
+    const vec2_t f12 = computeGradient(min_idx + size2_t(0, 1));
+    const vec2_t f21 = computeGradient(min_idx + size2_t(1, 0));
+    const vec2_t f22 = computeGradient(min_idx + size2_t(1, 1));
 
     vec2_t factor = (point - min_corner) / (max_corner - min_corner);
 
@@ -119,11 +130,75 @@ inline S ScalarField<T>::bilinearInterpolation(const S& f11, const S& f12, const
                                                vec2_t factor) const {
 
     const S v0 = f11 * (1 - factor[0]) * (1 - factor[1]);
-    const S v1 = f21 * factor[0] * (1 - factor[1]);
-    const S v2 = f12 * (1 - factor[0]) * factor[1];
+    const S v1 = f12 * (1 - factor[0]) * factor[1];
+    const S v2 = f21 * factor[0] * (1 - factor[1]);
     const S v3 = f22 * factor[0] * factor[1];
 
     return v0 + v1 + v2 + v3;
+}
+
+template<typename T>
+inline size2_t ScalarField<T>::getSurroundingCell(const vec2_t& point, vec2_t& min, vec2_t& max) const {
+    // calculates the minimum corner index and coordinates of the corners for the cell containing the point
+
+    if (point[0] < aabb.min[0] || point[1] < aabb.min[1] || point[0] > aabb.max[0] || point[1] > aabb.max[1]) {
+        throw std::runtime_error("Trying to access scalar field out of bounds");
+    }
+
+    // calculate min index including border case
+    size2_t min_idx = toSize2((point - aabb.min) / cell_size);
+    if (min_idx[0] == grid_size[0] - 1) {
+        min_idx[0]--;
+    }
+    if (min_idx[1] == grid_size[1] - 1) {
+        min_idx[1]--;
+    }
+
+    min = aabb.min + toVec2(min_idx) * cell_size;
+    max = min + cell_size;
+
+    return min_idx;
+}
+
+template<typename T>
+vec2_t ScalarField<T>::computeGradient(const size2_t idx) const {
+    // compute the gradient at this grid point using central difference if possible
+
+    vec2_t distance(0);
+
+    // check if backward difference is possible
+    size2_t min_idx = idx;
+    for (int i = 0; i < 2; i++) {
+        if (min_idx[i] > 0) {
+            min_idx[i]--;
+            distance[i] += cell_size[i];
+        }
+    }
+
+    // check if forward difference is possible
+    size2_t max_idx = idx;
+    for (int i = 0; i < 2; i++) {
+        if (max_idx[i] < grid_size[i] - 1) {
+            max_idx[i]++;
+            distance[i] += cell_size[i];
+        }
+    }
+
+    // get values (without bounds checks)
+    const T f_min_x = grid_values[min_idx[0] + idx[1] * grid_size[0]];
+    const T f_max_x = grid_values[max_idx[0] + idx[1] * grid_size[0]];
+    const T f_min_y = grid_values[idx[0] + min_idx[1] * grid_size[0]];
+    const T f_max_y = grid_values[idx[0] + max_idx[1] * grid_size[0]];
+
+    if (distance[0] == 0 || distance[1] == 0) {
+        return vec2_t(0);  // should never happen
+    }
+
+    vec2_t grad(0);
+    grad[0] = static_cast<real_t>(f_max_x - f_min_x) / distance[0];
+    grad[1] = static_cast<real_t>(f_max_y - f_min_y) / distance[1];
+
+    return grad;
 }
 
 }
