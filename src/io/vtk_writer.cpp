@@ -16,12 +16,12 @@ static void swapEndianess(T& var) {
 }
 
 template<typename T>
-static void writeLegacyVTK(const std::string& filename, const ScalarField<T> data,
+static void writeLegacyVTK(const std::string& filename, const ScalarField<T>& data,
                            bool binary, const std::string& type) {
 
     const size2_t& grid_size = data.getGridSize();
+	const vec2_t& cell_size = data.getCellSize();
     const AxisAlignedBoundingBox& aabb = data.getBoundingBox();
-    const vec2_t cell_size = (aabb.max - aabb.min) / (grid_size - vec2_t(1));
 
 	std::ofstream file;
 	if (binary) {
@@ -69,17 +69,17 @@ static void writeLegacyVTK(const std::string& filename, const ScalarField<T> dat
 }
 
 template<>
-void writeLegacyVTK<float>(const std::string& filename, const ScalarField<float> data, bool binary) {
+void writeLegacyVTK<float>(const std::string& filename, const ScalarField<float>& data, bool binary) {
     writeLegacyVTK(filename, data, binary, "float 1");
 }
 
 template<>
-void writeLegacyVTK<double>(const std::string& filename, const ScalarField<double> data, bool binary) {
+void writeLegacyVTK<double>(const std::string& filename, const ScalarField<double>& data, bool binary) {
     writeLegacyVTK(filename, data, binary, "double 1");
 }
 
 template<>
-void writeLegacyVTK<int16_t>(const std::string& filename, const ScalarField<int16_t> data, bool binary) {
+void writeLegacyVTK<int16_t>(const std::string& filename, const ScalarField<int16_t>& data, bool binary) {
     writeLegacyVTK(filename, data, binary, "short 1");
 }
 
