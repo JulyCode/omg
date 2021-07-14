@@ -13,6 +13,11 @@ target_compile_definitions(OMG PUBLIC _USE_MATH_DEFINES)
 
 target_link_libraries(OMG PRIVATE netcdf-cxx4)
 
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(OMG PRIVATE OpenMP::OpenMP_CXX)
+endif()
+
 target_include_directories(OMG PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(OMG PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../external")
 
