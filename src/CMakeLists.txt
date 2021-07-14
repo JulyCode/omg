@@ -15,7 +15,7 @@ target_link_libraries(OMG PRIVATE netcdf-cxx4)
 
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
-    target_link_libraries(OMG PRIVATE OpenMP::OpenMP_CXX)
+    target_link_libraries(OMG PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
 target_include_directories(OMG PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")

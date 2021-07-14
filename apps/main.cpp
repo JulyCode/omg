@@ -20,16 +20,16 @@ int main() {
     omg::BathymetryData topo = omg::io::readNetCDF("../../apps/GEBCO_2020.nc", topo_old.getBoundingBox());
 
     /*const std::string ref = "../../apps/reference/topo/";
-    omg::BathymetryData topo = omg::io::readBin32Topology(ref + "lon_medsea.bin32",
+    omg::BathymetryData topo_old_bin = omg::io::readBin32Topology(ref + "lon_medsea.bin32",
         ref + "lat_medsea.bin32", ref + "topog_medsea.bin32", omg::size2_t(8161, 3721));
-    omg::ScalarField<omg::real_t> grad = omg::io::readBin32Gradient(ref + "lon_medsea.bin32",
+    omg::ScalarField<omg::real_t> grad_old_bin = omg::io::readBin32Gradient(ref + "lon_medsea.bin32",
         ref + "lat_medsea.bin32", ref + "topog_grad_medsea.bin32", omg::size2_t(8161, 3721));
-    
+
     omg::io::writeLegacyVTK("../../apps/topo_old.vtk", topo, true);
-    omg::io::writeLegacyVTK("../../apps/topo_grad_old.vtk", grad, true);*/
+    omg::io::writeLegacyVTK("../../apps/topo_grad_old.vtk", grad, true);
 
-
-    /*auto diff1 = omg::analysis::difference<int16_t, omg::real_t>(topo_old, topo);
+    auto diff1 = omg::analysis::difference<int16_t, omg::real_t>(topo, topo_old_bin);
+    std::cout << omg::analysis::norm(diff1) << std::endl;
     omg::io::writeLegacyVTK("../../apps/diff1.vtk", diff1, true);
 
     auto diff2 = omg::analysis::difference<int16_t, omg::real_t>(topo, topo_old);
