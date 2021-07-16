@@ -6,13 +6,15 @@
 
 namespace omg {
 
+const SizeFunction* ACuteTriangulator::size_function;
+
 ACuteTriangulator::ACuteTriangulator() {
     ctx = triangle_context_create();
 
     behavior options;
     triangle_context_get_behavior(ctx, &options);
 
-    // zBPupDa0.5q25
+    // zBPupDq25
     options.firstnumber = 0;
     options.nobound = true;
     // -P does not exist
@@ -20,8 +22,6 @@ ACuteTriangulator::ACuteTriangulator() {
     options.triunsuitable_user_func = triunsuitable;
     options.poly = true;
     options.conformdel = true;
-    options.fixedarea = true;
-    options.maxarea = 0.5f;
     options.quality = true;
     options.minangle = 25.0f;
 
@@ -32,8 +32,10 @@ ACuteTriangulator::~ACuteTriangulator() {
     triangle_context_destroy(ctx);
 }
 
-void ACuteTriangulator::generateMesh(const Polygon& outline, Mesh& out_mesh) {
+void ACuteTriangulator::generateMesh(const Polygon& outline, const SizeFunction& size, Mesh& out_mesh) {
     restrictToInt(outline);
+
+    size_function = &size;
 
     TriangleIn<triangleio> in(outline);
     TriangleOut<triangleio> out;
@@ -43,13 +45,21 @@ void ACuteTriangulator::generateMesh(const Polygon& outline, Mesh& out_mesh) {
     check(triangle_mesh_copy(ctx, &out.io, false, false));
 
     out.toMesh(out_mesh);
+
+    size_function = nullptr;
 }
 
 int ACuteTriangulator::triunsuitable(double* v1, double* v2, double* v3, double area) {
-    return 0;
+    (void) area;  // unused
+
+    if (size_function == nullptr) {
+        throw std::runtime_error("size_function was null");
+    }
+
+    return !size_function->isTriangleGood(vec2_t(v1[0], v1[1]), vec2_t(v2[0], v2[1]), vec2_t(v3[0], v3[1]));
 }
 
-void ACuteTriangulator::check(int status_code) {
+void ACuteTriangulator::check(int status_code) const {
     std::string msg;
     switch (status_code) {
         case TRI_OK:

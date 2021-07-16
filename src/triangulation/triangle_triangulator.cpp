@@ -6,6 +6,8 @@
 
 namespace omg {
 
+const SizeFunction* TriangleTriangulator::size_function;
+
 TriangleTriangulator::TriangleTriangulator() {
     // init callback function to interact with Triangle
     jrs::set_triunsuitable_callback(triunsuitable);
@@ -13,8 +15,10 @@ TriangleTriangulator::TriangleTriangulator() {
 
 TriangleTriangulator::~TriangleTriangulator() {}
 
-void TriangleTriangulator::generateMesh(const Polygon& outline, Mesh& out_mesh) {
+void TriangleTriangulator::generateMesh(const Polygon& outline, const SizeFunction& size, Mesh& out_mesh) {
     restrictToInt(outline);
+
+    size_function = &size;
 
     TriangleIn<jrs::triangulateio> in(outline);
     TriangleOut<jrs::triangulateio> out;
@@ -26,7 +30,6 @@ void TriangleTriangulator::generateMesh(const Polygon& outline, Mesh& out_mesh) 
     // u: use triunsuitable quality check
     // p: triangulate a Planar Straight Line Graph (.poly file)
     // D: conforming Delaunay
-    // a0.5: area constraint of 0.5
     // q25: minimum angle of 25 degrees, maximum 180 - 2 * 25
     TriangleArgs args;
     args.quiet = false;
@@ -36,18 +39,24 @@ void TriangleTriangulator::generateMesh(const Polygon& outline, Mesh& out_mesh) 
     args.user_test = true;
     args.input_type = TriangleArgs::InputType::POLY;
     args.conformdel = true;
-    args.area_constraint = TriangleArgs::AreaConstraint::CUSTOM;
-    args.max_area = 0.5;
     args.quality = true;
     args.min_angle = 25;
 
     jrs::triangulate(args.toString(), &in.io, &out.io, nullptr);
 
     out.toMesh(out_mesh);
+
+    size_function = nullptr;
 }
 
 int TriangleTriangulator::triunsuitable(double* v1, double* v2, double* v3, double area) {
-    return 0;
+    (void) area;  // unused
+
+    if (size_function == nullptr) {
+        throw std::runtime_error("size_function was null");
+    }
+
+    return !size_function->isTriangleGood(vec2_t(v1[0], v1[1]), vec2_t(v2[0], v2[1]), vec2_t(v3[0], v3[1]));
 }
 
 
@@ -118,7 +127,7 @@ char* TriangleArgs::toString() {
 
     if (weighted == Weights::MODE_1) {
         s += "w";
-    } else if (weighted == Weights::MODE_1) {
+    } else if (weighted == Weights::MODE_2) {
         s += "W";
     }
 
@@ -158,7 +167,7 @@ char* TriangleArgs::toString() {
 
     // copy arguments to new char[]
     args = new char[s.size() + 1];
-    for (int i = 0; i < s.size(); i++) {
+    for (std::size_t i = 0; i < s.size(); i++) {
         args[i] = s[i];
     }
     args[s.size()] = '\0';

@@ -10,18 +10,18 @@ namespace omg {
 template<typename io_t>
 TriangleIn<io_t>::TriangleIn(const Polygon& poly) {
 
-    const std::vector<vec_t>& vertices = poly.getVertices();
+    const std::vector<vec2_t>& vertices = poly.getVertices();
     const std::vector<PolygonEdge>& edges = poly.getEdges();
 
     // initialize input triangulateio struct
     io.numberofpoints = vertices.size();
     io.pointlist = new real_t[vertices.size() * 2];
     // copy vertices
-    for (int i = 0; i < vertices.size(); i++) {
+    for (std::size_t i = 0; i < vertices.size(); i++) {
         io.pointlist[i * 2 + 0] = vertices[i][0];
         io.pointlist[i * 2 + 1] = vertices[i][1];
     }
-    
+
     io.numberofpointattributes = 0;
     io.pointattributelist = nullptr;
     io.pointmarkerlist = nullptr;
@@ -29,7 +29,7 @@ TriangleIn<io_t>::TriangleIn(const Polygon& poly) {
     io.numberofsegments = edges.size();
     io.segmentlist = new int[edges.size() * 2];
     // copy segments
-    for (int i = 0; i < edges.size(); i++) {
+    for (std::size_t i = 0; i < edges.size(); i++) {
         io.segmentlist[i * 2 + 0] = edges[i].first;
         io.segmentlist[i * 2 + 1] = edges[i].second;
     }
@@ -84,11 +84,10 @@ void TriangleOut<io_t>::toMesh(Mesh& mesh) const {  // TODO: error checking
     std::vector<Mesh::VertexHandle> vertex_handles;
     vertex_handles.reserve(io.numberofpoints);
 
-    Mesh::Point vertex;
+    Mesh::Point vertex(0);
     for (int i = 0; i < io.numberofpoints; i++) {
         vertex[0] = io.pointlist[2 * i + 0];
         vertex[1] = io.pointlist[2 * i + 1];
-        vertex[2] = 0;  // 3rd component not needed
 
         vertex_handles.push_back(mesh.add_vertex(vertex));
     }

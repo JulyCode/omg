@@ -13,15 +13,15 @@ public:
     Polygon();
     ~Polygon();
 
-    void addVertex(const vec_t& v);
-    void addVertices(const std::vector<vec_t>& v);
+    void addVertex(const vec2_t& v);
+    void addVertices(const std::vector<vec2_t>& v);
     void addEdge(const PolygonEdge& e);
 
-    const std::vector<vec_t>& getVertices() const;
+    const std::vector<vec2_t>& getVertices() const;
     const std::vector<PolygonEdge>& getEdges() const;
 
 private:
-    std::vector<vec_t> vertices;
+    std::vector<vec2_t> vertices;
     std::vector<PolygonEdge> edges;
 };
 

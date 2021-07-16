@@ -653,32 +653,47 @@ REAL ccwerrboundA, ccwerrboundB, ccwerrboundC;
 REAL iccerrboundA, iccerrboundB, iccerrboundC;
 REAL o3derrboundA, o3derrboundB, o3derrboundC;
 
+// dimensions of data arrays
 #define LenLat 3721 /* MedSea 30sec */
 #define LenLon 8161 /* MedSea 30sec */
 
 
-#define maxprio 500
+#define maxprio 500  // not used
 
-#define R_earth 6367500.
+#define R_earth 6367500.  // not used
 
 float lat[LenLat];
 float lon[LenLon];
 float topo[LenLat][LenLon];
 float topo_grad[LenLat][LenLon];
 
-int nprio, ncfl, ncst;
-float **priodat, **cfldat, **cstdat;
+int nprio;  // number of priority areas
+int ncfl;  // not used
+int ncst;  // not used
 
-float dx_4000, dx_min, dx_cst;
+// data of priority areas with size [nprio][5];
+// contains lon(0), lat(1) positon of center, inner(2), outer(3) radius
+// and highest resolution within the inner radius
+float **priodat;
+float **cfldat;  // not used
+float **cstdat;  // not used
 
-float cstres, factor, mindepth;
-float cfl_glob, cfl_reg;
+float dx_4000;  // coarsest resolution [m]
+float dx_min;  // finest resolution [m]
+float dx_cst;  // coastal resolution [m]
+
+float cstres;  // not used
+float factor;
+float mindepth;
+
+float cfl_glob;  // ?
+float cfl_reg;  // not used
 
 void readtopo()
 {
   FILE *fp;
   int i, j, count;
-  char str[10];
+  char str[10];  // string to throw away name of prio area
 
   fp=fopen(WORKING_DIRECTORY "mesh_setup.txt","r");
   fscanf(fp,"%f\n",&dx_4000);
@@ -1437,26 +1452,13 @@ int triunsuitable(triorg, tridest, triapex, area)
      double *triapex;
      double area;
 {
+
+  // ------------- start original code -------------
+
   double dxoa, dxda, dxod;
   double dyoa, dyda, dyod;
   double oalen, dalen, odlen;
   double maxlen;
-  double le;
-
-  double dx, dy, xi, yi, x0, y0, x1, y1;
-  int ix, iy;
-
-  float dep, c_gr, tgr1, tgr2, tgr3, maxtgr, fac;
-  float t1, t2, t3, t4, tg1, tg2, tg3, tg4, dltx, dlty;
-
-  float priox, prioy, prior1, prior2, priores, priodist;
-  float cflx, cfly, cflr1, cflr2, cflscal, cfldist;
-  float cstx, csty, cstr1, cstscal, cstdist;
-  int i, inprio, inreg;
-
-  double dx_cst_loc;
-
-  int mod_cfl;
 
   dxoa = triorg[0] - triapex[0];
   dyoa = triorg[1] - triapex[1];
@@ -1464,18 +1466,40 @@ int triunsuitable(triorg, tridest, triapex, area)
   dyda = tridest[1] - triapex[1];
   dxod = triorg[0] - tridest[0];
   dyod = triorg[1] - tridest[1];
-
+  /* Find the squares of the lengths of the triangle's three edges. */
   oalen = dxoa * dxoa + dyoa * dyoa;
   dalen = dxda * dxda + dyda * dyda;
   odlen = dxod * dxod + dyod * dyod;
-
+  /* Find the square of the length of the longest edge. */
   maxlen = (dalen > oalen) ? dalen : oalen;
   maxlen = (odlen > maxlen) ? odlen : maxlen;
 
+  // ------------- end original code -------------
+
+  double xi, yi;  // not used
+  double x0, y0, x1, y1;  // set every iteration
+  int ix, iy;  // indices computed before every iteration
+
+  float dep;  // sum (and later average) of depths at triangles corners
+  float tgr1, tgr2, tgr3;  // gradient at the corners
+  float fac;  // not used
+
+  float t1, t2, t3, t4, tg1, tg2, tg3, tg4, dltx, dlty;  // set every iteration
+
+  float cflx, cfly, cflr1, cflr2, cflscal, cfldist;  // not used
+  float cstx, csty, cstr1, cstscal, cstdist;  // not used
+
+  int inprio;  // is triangle in prio area
+  int inreg;  // not used
+
+  int mod_cfl;  // not used
+
   /* Depth and topography gradient in current triangle */
 
-  dx=lon[2]-lon[1];
-  dy=lat[2]-lat[1];
+  // distance between two sample points
+  // rounded to either 30 or 60 arc seconds
+  double dx=lon[2]-lon[1];
+  double dy=lat[2]-lat[1];
 
   if (fabs(dx-0.008333333)<0.001) dx=1./120.;
   if (fabs(dx-0.016666666)<0.001) dx=1./60.;
@@ -1485,43 +1509,53 @@ int triunsuitable(triorg, tridest, triapex, area)
 
   // Depth in the first node COARSE AREA
 
+  // floored indices to data for first point in triangle
   ix=floor((triorg[0]-lon[0])/dx);
   iy=floor((triorg[1]-lat[0])/dy);
   
   /*   printf("%d %d\n",ix,iy); */
   /*   printf("%f %f\n",lon[ix],triorg[0]); */
 
-  if (ix<LenLon-1 && iy<LenLat-1)
-    {
-      xi=triorg[0];
-      yi=triorg[1];
-      x0=lon[ix];
-      y0=lat[iy];
-      x1=lon[ix+1];
-      y1=lat[iy+1];
+  if (ix<LenLon-1 && iy<LenLat-1)  // bounds check
+  {
+    // not used
+    xi=triorg[0];
+    yi=triorg[1];
 
-      t1=topo[iy][ix];
-      t2=topo[iy][ix+1];
-      t3=topo[iy+1][ix+1];
-      t4=topo[iy][ix+1];
+    // lower coordinates
+    x0=lon[ix];
+    y0=lat[iy];
 
-      tg1=topo_grad[iy][ix];
-      tg2=topo_grad[iy][ix+1];
-      tg3=topo_grad[iy+1][ix+1];
-      tg4=topo_grad[iy][ix+1];
+    // upper coordinates
+    x1=lon[ix+1];
+    y1=lat[iy+1];
 
-      dltx=(triorg[0]-x0)/dx;
-      dlty=(triorg[1]-y0)/dy;
-      
-      dep=( (1.-dltx)*(1.-dlty)*t1 + dltx*(1.-dlty)*t2 + dltx*dlty*t3 + (1.-dltx)*dlty*t4 );
-      tgr1=(1.-dltx)*(1.-dlty)*tg1 + dltx*(1.-dlty)*tg2 + dltx*dlty*tg3 + (1.-dltx)*dlty*tg4;
+    // depth values at 4 corners of interpolation quad
+    t1=topo[iy][ix];
+    t2=topo[iy][ix+1];
+    t3=topo[iy+1][ix+1];
+    t4=topo[iy][ix+1];
 
-    }
+    // gradient values at 4 corners of interpolation quad
+    tg1=topo_grad[iy][ix];
+    tg2=topo_grad[iy][ix+1];
+    tg3=topo_grad[iy+1][ix+1];
+    tg4=topo_grad[iy][ix+1];
+
+    // interpolation coefficients
+    dltx=(triorg[0]-x0)/dx;
+    dlty=(triorg[1]-y0)/dy;
+
+    // bi-linear interpolation
+    dep=(1.-dltx)*(1.-dlty)*t1 + dltx*(1.-dlty)*t2 + dltx*dlty*t3 + (1.-dltx)*dlty*t4;
+    tgr1=(1.-dltx)*(1.-dlty)*tg1 + dltx*(1.-dlty)*tg2 + dltx*dlty*tg3 + (1.-dltx)*dlty*tg4;
+
+  }
   else
-    {
-      dep = topo[iy][ix];
-      tgr1 = topo_grad[iy][ix];
-    }
+  {
+    dep = topo[iy][ix];
+    tgr1 = topo_grad[iy][ix];
+  }
 
 
 
@@ -1531,36 +1565,36 @@ int triunsuitable(triorg, tridest, triapex, area)
   iy=floor((tridest[1]-lat[0])/dy);
   
   if (ix<LenLon-1 && iy<LenLat-1)
-    {
-      xi=tridest[0];
-      yi=tridest[1];
-      x0=lon[ix];
-      y0=lat[iy];
-      x1=lon[ix+1];
-      y1=lat[iy+1];
+  {
+    xi=tridest[0];
+    yi=tridest[1];
+    x0=lon[ix];
+    y0=lat[iy];
+    x1=lon[ix+1];
+    y1=lat[iy+1];
 
-      t1=topo[iy][ix];
-      t2=topo[iy][ix+1];
-      t3=topo[iy+1][ix+1];
-      t4=topo[iy][ix+1];
+    t1=topo[iy][ix];
+    t2=topo[iy][ix+1];
+    t3=topo[iy+1][ix+1];
+    t4=topo[iy][ix+1];
 
-      tg1=topo_grad[iy][ix];
-      tg2=topo_grad[iy][ix+1];
-      tg3=topo_grad[iy+1][ix+1];
-      tg4=topo_grad[iy][ix+1];
+    tg1=topo_grad[iy][ix];
+    tg2=topo_grad[iy][ix+1];
+    tg3=topo_grad[iy+1][ix+1];
+    tg4=topo_grad[iy][ix+1];
 
-      dltx=(tridest[0]-x0)/dx;
-      dlty=(tridest[1]-y0)/dy;
+    dltx=(tridest[0]-x0)/dx;
+    dlty=(tridest[1]-y0)/dy;
 
-      dep= dep+( (1.-dltx)*(1.-dlty)*t1 + dltx*(1.-dlty)*t2 + dltx*dlty*t3 + (1.-dltx)*dlty*t4 );
-      tgr2=(1.-dltx)*(1.-dlty)*tg1 + dltx*(1.-dlty)*tg2 + dltx*dlty*tg3 + (1.-dltx)*dlty*tg4;
+    dep= dep+( (1.-dltx)*(1.-dlty)*t1 + dltx*(1.-dlty)*t2 + dltx*dlty*t3 + (1.-dltx)*dlty*t4 );
+    tgr2=(1.-dltx)*(1.-dlty)*tg1 + dltx*(1.-dlty)*tg2 + dltx*dlty*tg3 + (1.-dltx)*dlty*tg4;
 
-    }
+  }
   else
-    {
-      dep = dep+topo[iy][ix];
-      tgr2 = topo_grad[iy][ix];
-    }
+  {
+    dep = dep+topo[iy][ix];
+    tgr2 = topo_grad[iy][ix];
+  }
 
 
   // Depth in the third node COARSE AREA
@@ -1569,83 +1603,100 @@ int triunsuitable(triorg, tridest, triapex, area)
   iy=floor((triapex[1]-lat[0])/dy);
   
   if (ix<LenLon-1 && iy<LenLat-1)
-    {
-      xi=triapex[0];
-      yi=triapex[1];
-      x0=lon[ix];
-      y0=lat[iy];
-      x1=lon[ix+1];
-      y1=lat[iy+1];
-      t1=topo[iy][ix];
-      t2=topo[iy][ix+1];
-      t3=topo[iy+1][ix+1];
-      t4=topo[iy][ix+1];
+  {
+    xi=triapex[0];
+    yi=triapex[1];
+    x0=lon[ix];
+    y0=lat[iy];
+    x1=lon[ix+1];
+    y1=lat[iy+1];
+    t1=topo[iy][ix];
+    t2=topo[iy][ix+1];
+    t3=topo[iy+1][ix+1];
+    t4=topo[iy][ix+1];
 
-      tg1=topo_grad[iy][ix];
-      tg2=topo_grad[iy][ix+1];
-      tg3=topo_grad[iy+1][ix+1];
-      tg4=topo_grad[iy][ix+1];
+    tg1=topo_grad[iy][ix];
+    tg2=topo_grad[iy][ix+1];
+    tg3=topo_grad[iy+1][ix+1];
+    tg4=topo_grad[iy][ix+1];
 
-      dltx=(triapex[0]-x0)/dx;
-      dlty=(triapex[1]-y0)/dy;
+    dltx=(triapex[0]-x0)/dx;
+    dlty=(triapex[1]-y0)/dy;
 
-      dep=dep + ( (1.-dltx)*(1.-dlty)*t1 + dltx*(1.-dlty)*t2 + dltx*dlty*t3 + (1.-dltx)*dlty*t4 );
-      tgr3=(1.-dltx)*(1.-dlty)*tg1 + dltx*(1.-dlty)*tg2 + dltx*dlty*tg3 + (1.-dltx)*dlty*tg4;
+    dep=dep + ( (1.-dltx)*(1.-dlty)*t1 + dltx*(1.-dlty)*t2 + dltx*dlty*t3 + (1.-dltx)*dlty*t4 );
+    tgr3=(1.-dltx)*(1.-dlty)*tg1 + dltx*(1.-dlty)*tg2 + dltx*dlty*tg3 + (1.-dltx)*dlty*tg4;
 
-    }
+  }
   else
-    {
-      dep = dep+topo[iy][ix];
-      tgr3 = topo_grad[iy][ix];
-    }
+  {
+    dep = dep+topo[iy][ix];
+    tgr3 = topo_grad[iy][ix];
+  }
 
-  le=sqrt(maxlen)*(PI/180.)*6367500.;
+  // I guess the current resolution ???
+  double le=sqrt(maxlen)*(PI/180.)*6367500.;
 
-  dep=ONETHIRD*dep;
+  dep=ONETHIRD*dep;  // average depth
 
-  if (dep<-500.0) dep=-dep;
+  if (dep<-500.0) dep=-dep;  // flip depths below -500 m, why?
 
-  maxtgr = (tgr2 > tgr1) ? tgr2 : tgr1;
+  // maximum gradient
+  float maxtgr = (tgr2 > tgr1) ? tgr2 : tgr1;
   maxtgr = (tgr3 > maxtgr) ? tgr3 : maxtgr;
 
   factor=cfl_glob;
-  dx_cst_loc = dx_cst;
+  double dx_cst_loc = dx_cst;
 
-  mod_cfl=0;
+  mod_cfl=0;  // not used
 
-  mindepth=0.1*(dx_min*dx_min)/(factor*factor);
-  if (dep<mindepth) dep=mindepth;
-  c_gr=factor*0.02;
+  mindepth=0.1*(dx_min*dx_min)/(factor*factor);  // already has this value
 
+  if (dep<mindepth) dep=mindepth;  // clamp depth
+
+  // check if triangle is in prio area
   inprio=0;
-  for (i=0;i<nprio;i++)
-    {priox=priodat[i][0];
-      prioy=priodat[i][1];
-      prior1=priodat[i][2];
-      prior2=priodat[i][3];
-      priores=priodat[i][4];
-      priodist=sqrt((triorg[0]-priox)*(triorg[0]-priox) + (triorg[1]-prioy)*(triorg[1]-prioy));
-      if ( (priodist<prior1 && le/sqrt(9.81*dep)>factor && le>=priores) || 
-	   (priodist>=prior1 && priodist<prior2 && le/sqrt(9.81*dep)>factor && 
-	    le>=priores+(priodist-prior1)*(dx_cst_loc-priores)/(prior2-prior1)) )
-	inprio=1;
-    }
+  for (int i=0;i<nprio;i++)
+  {
+    float priox=priodat[i][0];
+    float prioy=priodat[i][1];
+    float prior1=priodat[i][2];
+    float prior2=priodat[i][3];
+    float priores=priodat[i][4];
 
+    // distance to center of prio area
+    float priodist=sqrt((triorg[0]-priox)*(triorg[0]-priox) + (triorg[1]-prioy)*(triorg[1]-prioy));
+
+    // ???
+    int condition = le/sqrt(9.81*dep)>factor;
+
+    // check if in inner radius and ???
+    int in_inner_radius = priodist<prior1 && le>=priores;
+
+    // check if between inner and outer radius and ???
+    int between_inner_and_outer = priodist>=prior1 && priodist<prior2
+      && le>=priores+(priodist-prior1)*(dx_cst_loc-priores)/(prior2-prior1);
+
+    if ( condition && (in_inner_radius || between_inner_and_outer))
+    {
+      inprio=1;
+    }
+  }
+
+
+  float c_gr=factor*0.02;
 
   if ( le>(factor*sqrt(9.81*dep)) && le>dx_cst_loc ||
        ( le>((c_gr*dep)/maxtgr) && le>dx_cst_loc ) ||
        (le>2.*dx_4000) ||
        (inprio==1)
        )
-
-
-      {
+  {
 	  return 1;
-      }
+  }
   else
-      {
+  {
 	  return 0;
-      }
+  }
 }
 
 #endif /* not EXTERNAL_TEST */

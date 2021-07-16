@@ -9,7 +9,8 @@ namespace omg {
 namespace io {
 
 void writeOff(const std::string& filename, const Mesh& mesh) {
-    std::filesystem::path filepath(filename);
+    const std::filesystem::path filepath(filename);
+
     if (filepath.extension() != ".off") {  // TODO: useless restriction, but for now ...
         throw std::runtime_error("Wrong file format: " + filename + " expected: .off");
     }
