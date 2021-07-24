@@ -76,4 +76,13 @@ inline real_t geoDistance(vec2_t p1, vec2_t p2) {
     return EARTH_RADIUS * std::sqrt(d_lat * d_lat + lon * lon);
 }
 
+
+struct AxisAlignedBoundingBox {
+    vec2_t min, max;
+
+    inline vec2_t center() const {
+        return (min + max) / 2;
+    }
+};
+
 }

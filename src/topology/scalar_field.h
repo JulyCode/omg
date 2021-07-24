@@ -4,10 +4,6 @@
 
 namespace omg {
 
-struct AxisAlignedBoundingBox {
-    vec2_t min, max;
-};
-
 // template type to check if the interpolation type was set explicitly or implicitly
 struct DefaultType {};
 
@@ -44,6 +40,8 @@ public:
 
     inline const std::vector<T>& grid() const { return grid_values; }
     inline std::vector<T>& grid() { return grid_values; }
+
+    inline vec2_t getPoint(const size2_t& idx) const { return aabb.min + toVec2(idx) * cell_size; }
 
     inline std::size_t linearIndex(const size2_t& idx) const;
 
