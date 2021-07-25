@@ -1,6 +1,10 @@
 
 #include "marching_quads.h"
 
+#include <chrono>
+#include <iostream>
+#include <shared_mutex>
+
 namespace omg {
 
 static constexpr unsigned int edge_table[16] = {
@@ -25,12 +29,18 @@ static vec2_t linearInterpolation(const vec2_t& p1, const vec2_t& p2, real_t v1,
 }
 
 LineGraph marchingQuads(const BathymetryData& data, real_t iso_value) {
+    auto begin = std::chrono::high_resolution_clock::now();
+
     const size2_t& grid_size = data.getGridSize();
 
     LineGraph poly;
 
+    std::mutex v_lock, e_lock;
+    std::shared_mutex map_lock;
+
     std::unordered_map<std::size_t, std::size_t> point_map;
 
+    #pragma omp parallel for
     for (std::size_t i = 0; i < grid_size[0] - 1; i++) {
         for (std::size_t j = 0; j < grid_size[1] - 1; j++) {
 
@@ -74,21 +84,35 @@ LineGraph marchingQuads(const BathymetryData& data, real_t iso_value) {
                 if (edges & (1 << n)) {
 
                     const std::size_t edge_idx = edge_base_idx + edge_index_offset[n];
-                    const auto it = point_map.find(edge_idx);
 
-                    // if this edge already has a point, use that
-                    if (it != point_map.end()) {
-                        points[counter] = it->second;
-                    } else {
+                    bool found;
+                    {
+                        std::shared_lock lock(map_lock);
+
+                        const auto it = point_map.find(edge_idx);
+                        found = it != point_map.end();
+                        // if this edge already has a point, use that
+                        if (found) {
+                            points[counter] = it->second;
+                        }
+                    }
+
+                    if (!found) {  // else
 
                         // calculate new position for a point on this edge
                         const int m = (n + 1) % 4;  // end point of edge
                         const vec2_t point = linearInterpolation(pos[n], pos[m], values[n], values[m], iso_value);
 
-                        points[counter] = poly.addVertex(point);
+                        {
+                            const std::lock_guard lock(v_lock);
+                            points[counter] = poly.addVertex(point);
+                        }
 
-                        // insert into map
-                        point_map[edge_idx] = points[counter];
+                        {
+                            std::unique_lock lock(map_lock);
+                            // insert into map
+                            point_map[edge_idx] = points[counter];
+                        }
                     }
 
                     counter++;
@@ -96,11 +120,16 @@ LineGraph marchingQuads(const BathymetryData& data, real_t iso_value) {
             }
 
             // connect points to polygon edges
+            const std::lock_guard lock(e_lock);
+
             for (int n = 0; n < counter; n += 2) {
                 poly.addEdge(points[n], points[n + 1]);
             }
         }
     }
+
+    auto end = std::chrono::high_resolution_clock::now();
+	std::cout << "Took: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << std::endl;
 
     return poly;
 }
