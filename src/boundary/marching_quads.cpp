@@ -119,6 +119,18 @@ LineGraph marchingQuads(const BathymetryData& data, real_t iso_value) {
                 }
             }
 
+            // asymptotic decider
+            // see http://web.cse.ohio-state.edu/~shen.94/788/Site/Reading_files/p83-nielson.pdf
+            if (counter == 4) {
+                real_t asymptotic_center_value = values[0] * values[2] + values[1] * values[3];
+                asymptotic_center_value /= values[0] + values[2] - values[1] - values[3];
+
+                // swap the points to be connected the other way
+                if (asymptotic_center_value >= iso_value) {  // TODO: less or greater equal?
+                    std::swap(points[0], points[2]);
+                }
+            }
+
             // connect points to polygon edges
             const std::lock_guard lock(e_lock);
 
