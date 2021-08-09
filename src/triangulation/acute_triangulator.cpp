@@ -32,12 +32,10 @@ ACuteTriangulator::~ACuteTriangulator() {
     triangle_context_destroy(ctx);
 }
 
-void ACuteTriangulator::generateMesh(const Polygon& outline, const SizeFunction& size, Mesh& out_mesh) {
-    restrictToInt(outline);
-
+void ACuteTriangulator::generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh) {
     size_function = &size;
 
-    TriangleIn<triangleio> in(outline);
+    TriangleIn<triangleio> in(boundary);
     TriangleOut<triangleio> out;
 
     check(triangle_mesh_create(ctx, &in.io));

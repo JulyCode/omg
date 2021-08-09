@@ -1,6 +1,6 @@
 #pragma once
 
-#include <geometry/polygon.h>
+#include <boundary/boundary.h>
 #include <geometry/mesh.h>
 #include <size_function/size_function.h>
 
@@ -11,10 +11,7 @@ public:
     Triangulator() {}
     virtual ~Triangulator() {}
 
-    virtual void generateMesh(const Polygon& outline, const SizeFunction& size, Mesh& out_mesh) = 0;
-
-protected:
-    void restrictToInt(const Polygon& outline) const;
+    virtual void generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh) = 0;
 };
 
 }

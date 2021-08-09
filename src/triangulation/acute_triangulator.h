@@ -13,7 +13,7 @@ public:
     ACuteTriangulator();
     ~ACuteTriangulator();
 
-    void generateMesh(const Polygon& outline, const SizeFunction& size, Mesh& out_mesh) override;
+    void generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh) override;
 
 private:
     static const SizeFunction* size_function;
