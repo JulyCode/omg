@@ -3,6 +3,22 @@
 
 namespace omg {
 
+LineGraph LineGraph::createRectangle(const AxisAlignedBoundingBox& aabb) {
+    LineGraph lg;
+
+    VertexHandle v0 = lg.addVertex(vec2_t(aabb.min[0], aabb.min[1]));
+    VertexHandle v1 = lg.addVertex(vec2_t(aabb.max[0], aabb.min[1]));
+    VertexHandle v2 = lg.addVertex(vec2_t(aabb.max[0], aabb.max[1]));
+    VertexHandle v3 = lg.addVertex(vec2_t(aabb.min[0], aabb.max[1]));
+
+    lg.addEdge(v0, v1);
+    lg.addEdge(v1, v2);
+    lg.addEdge(v2, v3);
+    lg.addEdge(v3, v0);
+
+    return lg;
+}
+
 LineGraph::VertexHandle LineGraph::addVertex(const vec2_t& v) {
     const VertexHandle idx = points.size();
 

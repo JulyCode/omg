@@ -15,6 +15,8 @@ public:
 public:
     LineGraph() = default;
 
+    static LineGraph createRectangle(const AxisAlignedBoundingBox& aabb);
+
     VertexHandle addVertex(const vec2_t& p);
     EdgeHandle addEdge(VertexHandle v1, VertexHandle v2);
 
