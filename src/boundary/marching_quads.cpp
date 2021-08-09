@@ -87,7 +87,7 @@ LineGraph marchingQuads(const BathymetryData& data, real_t iso_value) {
 
                     bool found;
                     {
-                        std::shared_lock lock(map_lock);
+                        const std::shared_lock lock(map_lock);
 
                         const auto it = point_map.find(edge_idx);
                         found = it != point_map.end();
@@ -109,7 +109,7 @@ LineGraph marchingQuads(const BathymetryData& data, real_t iso_value) {
                         }
 
                         {
-                            std::unique_lock lock(map_lock);
+                            const std::unique_lock lock(map_lock);
                             // insert into map
                             point_map[edge_idx] = points[counter];
                         }
@@ -126,7 +126,7 @@ LineGraph marchingQuads(const BathymetryData& data, real_t iso_value) {
                 asymptotic_center_value /= values[0] + values[2] - values[1] - values[3];
 
                 // swap the points to be connected the other way
-                if (asymptotic_center_value >= iso_value) {  // TODO: less or greater equal?
+                if (asymptotic_center_value < iso_value) {
                     std::swap(points[0], points[2]);
                 }
             }

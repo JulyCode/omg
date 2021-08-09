@@ -1,39 +1,29 @@
 #include <iostream>
 
-#include <geometry/polygon.h>
+#include <geometry/line_graph.h>
 #include <io/poly_reader.h>
 #include <io/off_writer.h>
 #include <io/vtk_writer.h>
 #include <io/nc_reader.h>
-#include <io/bin32_reader.h>
 #include <triangulation/triangle_triangulator.h>
 #include <size_function/reference_size.h>
-#include <analysis/grid_compare.h>
+#include <boundary/boundary.h>
 
 int main() {
 
     omg::AxisAlignedBoundingBox aabb;
-    aabb.min = omg::vec2_t(-20.99583243, 20.99583245);
+    aabb.min = omg::vec2_t(-20.99583243, 10.99583245);
     aabb.max = omg::vec2_t(47.00416564, 51.99583436);
 
-    omg::BathymetryData topo_old = omg::io::readNetCDF("../../apps/MedSea.nc");
-    omg::BathymetryData topo = omg::io::readNetCDF("../../apps/GEBCO_2020.nc", topo_old.getBoundingBox());
+    omg::LineGraph poly = omg::io::readPoly("../../apps/medsea.poly");
 
-    /*const std::string ref = "../../apps/reference/topo/";
-    omg::BathymetryData topo_old_bin = omg::io::readBin32Topology(ref + "lon_medsea.bin32",
-        ref + "lat_medsea.bin32", ref + "topog_medsea.bin32", omg::size2_t(8161, 3721));
-    omg::ScalarField<omg::real_t> grad_old_bin = omg::io::readBin32Gradient(ref + "lon_medsea.bin32",
-        ref + "lat_medsea.bin32", ref + "topog_grad_medsea.bin32", omg::size2_t(8161, 3721));
+    omg::BathymetryData topo = omg::io::readNetCDF("../../apps/GEBCO_2020.nc", poly.computeBoundingBox());
+    std::cout << topo.getGridSize() << std::endl;
 
-    omg::io::writeLegacyVTK("../../apps/topo_old.vtk", topo, true);
-    omg::io::writeLegacyVTK("../../apps/topo_grad_old.vtk", grad, true);
+    omg::Boundary coast(topo, poly);
 
-    auto diff1 = omg::analysis::difference<int16_t, omg::real_t>(topo, topo_old_bin);
-    std::cout << omg::analysis::norm(diff1) << std::endl;
-    omg::io::writeLegacyVTK("../../apps/diff1.vtk", diff1, true);
-
-    auto diff2 = omg::analysis::difference<int16_t, omg::real_t>(topo, topo_old);
-    omg::io::writeLegacyVTK("../../apps/diff2.vtk", diff2, true);*/
+    // omg::io::writeLegacyVTK("../../apps/coast.vtk", coast);
+    return 0;
 
     omg::Resolution resolution;
     resolution.coarsest = 20000;
@@ -47,15 +37,14 @@ int main() {
 
     // omg::io::writeLegacyVTK("../../apps/size_fkt.vtk", sf, true);
 
-    omg::Polygon poly = omg::io::readPoly("../../apps/medsea.poly");
-
     omg::Mesh mesh;
     omg::TriangleTriangulator tri;
-    tri.generateMesh(poly, sf, mesh);
+    tri.generateMesh(coast, sf, mesh);
 
     std::cout << "output mesh:" << std::endl;
     std::cout << "vertices: " << mesh.n_vertices() << std::endl;
     std::cout << "triangles: " << mesh.n_faces() << std::endl;
 
     omg::io::writeOff("../../apps/medsea.off", mesh);
+    omg::io::writeLegacyVTK("../../apps/mesh.vtk", mesh);
 }
