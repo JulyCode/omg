@@ -6,5 +6,9 @@ out
 
 *.bin32
 *.nc
+*.png
+*.vtk
+*.poly
+*.off
 
 CPPLINT.cfg

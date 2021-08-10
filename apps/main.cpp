@@ -20,22 +20,23 @@ int main() {
     omg::BathymetryData topo = omg::io::readNetCDF("../../apps/GEBCO_2020.nc", poly.computeBoundingBox());
     std::cout << topo.getGridSize() << std::endl;
 
-    omg::Boundary coast(topo, poly);
-
-    // omg::io::writeLegacyVTK("../../apps/coast.vtk", coast);
-    return 0;
-
     omg::Resolution resolution;
     resolution.coarsest = 20000;
     resolution.finest = 1000;
     resolution.coastal = 5000;
     resolution.aois.push_back({omg::vec2_t(25.14, 35.335), 0.2, 0.5, 1000});  // Heraklion
 
-    std::cout << "calculationg size..." << std::endl;
+    std::cout << "calculating size..." << std::endl;
     omg::ReferenceSize sf(topo, resolution);
-    std::cout << "calculationg size done" << std::endl;
+    std::cout << "calculating size done" << std::endl;
 
     // omg::io::writeLegacyVTK("../../apps/size_fkt.vtk", sf, true);
+
+    omg::Boundary coast(topo, poly, sf);
+
+    // omg::io::writeLegacyVTK("../../apps/coast.vtk", coast);
+
+    return 0;
 
     omg::Mesh mesh;
     omg::TriangleTriangulator tri;
