@@ -3,6 +3,8 @@
 
 #include <cstring>
 
+#include <geometry/line_intersection.h>
+
 namespace omg {
 
 HEPolygon::HEPolygon(const std::vector<vec2_t>& polygon) {
@@ -82,28 +84,28 @@ HEPolygon::VertexHandle HEPolygon::collapse(HalfEdgeHandle heh, real_t location)
 
     const VertexHandle start = heh;
     const VertexHandle end = half_edges[heh].next;
-    const VertexHandle end_next = half_edges[end].next;
+    const VertexHandle prev = half_edges[start].prev;
 
     // move point to middle
-    points[start] = points[start] + (points[end] - points[start]) * location;
+    points[end] = points[start] + (points[end] - points[start]) * location;
 
     // modify halfedges
-    half_edges[start].next = end_next;
-    half_edges[end_next].prev = start;
+    half_edges[end].prev = prev;
+    half_edges[prev].next = end;
 
     // mark as deleted
     deleted.insert(heh);
 
-    return start;
+    return end;
 }
 
 
-HEPolygon::VertexRange HEPolygon::vertices() const {
-    return VertexRange(VertexIterator(*this, 0, false));
+HEPolygon::VertexRange HEPolygon::vertices(VertexHandle start) const {
+    return VertexRange(VertexIterator(*this, start, false));
 }
 
-HEPolygon::HalfEdgeRange HEPolygon::halfEdges() const {
-    return HalfEdgeRange(HalfEdgeIterator(*this, 0, false));
+HEPolygon::HalfEdgeRange HEPolygon::halfEdges(VertexHandle start) const {
+    return HalfEdgeRange(HalfEdgeIterator(*this, start, false));
 }
 
 HEPolygon::VertexRange HEPolygon::verticesOrdered(VertexHandle start) const {
@@ -188,12 +190,14 @@ real_t HEPolygon::computeArea() const {
         throw std::runtime_error("empty polygon has no area");
     }
 
+    // calculate center of mass
     vec2_t sum(0);
     for (VertexHandle v : vertices()) {
         sum += point(v);
     }
     const vec3_t center = toVec3(sum / numVertices());
 
+    // sum areas formed with two consecutive points and the center
     real_t area = 0;
     for (VertexHandle v : vertices()) {
         const vec3_t to_next = toVec3(point(nextVertex(v)) - point(v));
@@ -203,14 +207,38 @@ real_t HEPolygon::computeArea() const {
     return std::abs(area / 2);
 }
 
+bool HEPolygon::hasSelfIntersection() const {  // very slow
+    for (HalfEdgeHandle e1 : halfEdges()) {
+        const LineSegment l1 = {startPoint(e1), endPoint(e1)};
+
+        for (HalfEdgeHandle e2 : halfEdges(e1)) {
+
+            const bool shared_corner = nextHalfEdge(e1) == e2 || prevHalfEdge(e1) == e2;
+
+            if (shared_corner) {
+                continue;
+            }
+
+            const LineSegment l2 = {startPoint(e2), endPoint(e2)};
+            if (lineIntersection(l1, l2)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 LineGraph HEPolygon::toLineGraph() const {
     LineGraph graph;
 
-    for (VertexHandle v : vertices()) {
+    const std::size_t num = numVertices();
+    std::size_t idx = 0;
+    for (VertexHandle v : verticesOrdered()) {
 
         graph.addVertex(point(v));
 
-        graph.addEdge(v, nextVertex(v));
+        graph.addEdge(idx, (idx + 1) % num);
+        idx++;
     }
 
     return graph;
@@ -221,6 +249,7 @@ template<typename Handle>
 HEPolygonIterator<Handle>::HEPolygonIterator(const HEPolygon& poly, Handle start, bool ordered)
     : poly(poly), start(start), handle(start), ordered(ordered), is_end(false) {
 
+    // find first valid handle
     if (handle < poly.points.size() && !poly.isValid(handle)) {
         if (ordered) {
             do {
@@ -236,6 +265,7 @@ template<typename Handle>
 HEPolygonIterator<Handle>& HEPolygonIterator<Handle>::operator++() {
     if (ordered) {
 
+        // advance start until it is valid, but don't overtake handle
         while (!poly.isValid(start) && handle != start) {
             start = poly.nextVertex(start);
         }
@@ -247,6 +277,7 @@ HEPolygonIterator<Handle>& HEPolygonIterator<Handle>::operator++() {
 
     } else {
 
+        // find next valid handle
         do {
             handle++;
         } while (handle < poly.points.size() && !poly.isValid(handle));
@@ -297,6 +328,7 @@ bool HEPolygonIterator<Handle>::operator!=(const HEPolygonIterator& other) const
 
 template<typename Handle>
 void HEPolygonIterator<Handle>::toEnd() {
+    // advance this iterator to the end
     is_end = true;
     if (!ordered) {
         handle = poly.points.size();

@@ -1,6 +1,8 @@
 
 #include "line_graph.h"
 
+#include <geometry/line_intersection.h>
+
 namespace omg {
 
 LineGraph LineGraph::createRectangle(const AxisAlignedBoundingBox& aabb) {
@@ -76,6 +78,28 @@ AxisAlignedBoundingBox LineGraph::computeBoundingBox() const {
     }
 
     return aabb;
+}
+
+bool LineGraph::hasSelfIntersection() const {
+    for (const Edge& e1 : getEdges()) {
+        const LineSegment l1 = {getPoint(e1.first), getPoint(e1.second)};
+
+        for (const Edge& e2 : getEdges()) {
+
+            const bool shared_corner = e1.first == e2.first || e1.first == e2.second ||
+                                       e1.second == e2.first || e1.second == e2.second;
+
+            if (shared_corner) {
+                continue;
+            }
+
+            const LineSegment l2 = {getPoint(e2.first), getPoint(e2.second)};
+            if (lineIntersection(l1, l2)) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 }

@@ -31,6 +31,8 @@ public:
 
     AxisAlignedBoundingBox computeBoundingBox() const;
 
+    bool hasSelfIntersection() const;
+
 private:
     std::vector<vec2_t> points;
     std::vector<Edge> edges;

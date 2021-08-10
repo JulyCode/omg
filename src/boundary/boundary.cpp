@@ -4,24 +4,20 @@
 #include <iostream>
 
 #include <boundary/marching_quads.h>
+#include <boundary/remeshing.h>
+#include <geometry/line_intersection.h>
 
 #include <io/vtk_writer.h>
 
 namespace omg {
 
-Boundary::Boundary(const BathymetryData& data, const LineGraph& poly, real_t height)
-    : height(height), data(data) {
+Boundary::Boundary(const BathymetryData& data, const LineGraph& poly, const SizeFunction& size, real_t height)
+    : height(height), data(data), size(size) {
 
     // convert LineGraph to region HEPolygon
     convertToRegion(poly);
 
     LineGraph coast = marchingQuads(data, height);
-
-    // io::writeLegacyVTK("../../apps/coast.vtk", coast);
-    // io::writeLegacyVTK("../../apps/poly.vtk", region);
-
-    std::cout << coast.numVertices() << " vertices" << std::endl;
-    std::cout << coast.numEdges() << " edges" << std::endl;
 
     // search adjacent edges per vertex
     AdjacencyList adjacency = getAdjacency(coast);
@@ -33,7 +29,6 @@ Boundary::Boundary(const BathymetryData& data, const LineGraph& poly, real_t hei
     clampToRegion(coast, adjacency, intersections);
 
     std::vector<HEPolygon> cycles = findCycles(coast, adjacency);
-    std::cout << cycles.size() << " cycles" << std::endl;
 
     // remove polygons that are outside the region
     // TODO: doesn't work if a cut point is selected
@@ -46,22 +41,6 @@ Boundary::Boundary(const BathymetryData& data, const LineGraph& poly, real_t hei
             ++it;
         }
     }
-
-    // test
-    std::size_t offset = 0;
-    LineGraph cut;
-    for (const HEPolygon& p : cycles) {
-        auto lg = p.toLineGraph();
-        for (const auto& v : lg.getPoints()) {
-            cut.addVertex(v);
-        }
-        for (const auto& e : lg.getEdges()) {
-            cut.addEdge(e.first + offset, e.second + offset);
-        }
-        offset += lg.getPoints().size();
-    }
-    // io::writeLegacyVTK("../../apps/cut.vtk", cut);
-
 
     // find and remove the outer polygon
     // special case: region polygon is completely on water
@@ -91,29 +70,17 @@ Boundary::Boundary(const BathymetryData& data, const LineGraph& poly, real_t hei
     }
 
     std::cout << outer.numVertices() << " vertices" << std::endl;
-    // io::writeLegacyVTK("../../apps/outer.vtk", outer.toLineGraph());
-    outer = region;  // TODO: remeshing
+
+    omg::remesh(outer, size);
+
+    std::cout << outer.numVertices() << " vertices" << std::endl;
+    io::writeLegacyVTK("../../apps/outer.vtk", outer.toLineGraph());
 }
 
 void Boundary::convertToRegion(const LineGraph& poly) {
     // check for self-intersections
-    for (const LineGraph::Edge& e1 : poly.getEdges()) {
-        const LineSegment l1 = {poly.getPoint(e1.first), poly.getPoint(e1.second)};
-
-        for (const LineGraph::Edge& e2 : poly.getEdges()) {
-
-            const bool shared_corner = e1.first == e2.first || e1.first == e2.second ||
-                                       e1.second == e2.first || e1.second == e2.second;
-
-            if (shared_corner) {
-                continue;
-            }
-
-            const LineSegment l2 = {poly.getPoint(e2.first), poly.getPoint(e2.second)};
-            if (lineIntersectFactor(l1, l2)) {
-                throw std::runtime_error("region polygon must not intersect itself");
-            }
-        }
+    if (poly.hasSelfIntersection()) {
+        throw std::runtime_error("region polygon must not intersect itself");
     }
 
     // check if non-manifold
@@ -164,7 +131,7 @@ void Boundary::computeIntersections(const LineGraph& coast, IntersectionList& in
             const LineGraph::Edge& c_edge = coast.getEdge(c_eh);
             const LineSegment l2 = {coast.getPoint(c_edge.first), coast.getPoint(c_edge.second)};
 
-            std::optional<real_t> t = lineIntersectFactor(l1, l2);
+            std::optional<real_t> t = lineIntersectionFactor(l1, l2);
             // intersection found
             if (t) {
                 const vec2_t point = l1.first + (*t) * (l1.second - l1.first);
@@ -194,46 +161,6 @@ void Boundary::computeIntersections(const LineGraph& coast, IntersectionList& in
     }
 }
 
-std::optional<real_t> Boundary::lineIntersectFactor(LineSegment l1, LineSegment l2) const {
-    // compute factor t in [0, 1] of l1
-    // see https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
-
-    const vec2_t& p1 = l1.first;
-    const vec2_t& p2 = l1.second;
-    const vec2_t& p3 = l2.first;
-    const vec2_t& p4 = l2.second;
-
-    const real_t numT = (p1[0] - p3[0]) * (p3[1] - p4[1]) - (p1[1] - p3[1]) * (p3[0] - p4[0]);
-    const real_t numU = (p2[0] - p1[0]) * (p1[1] - p3[1]) - (p2[1] - p1[1]) * (p1[0] - p3[0]);
-    const real_t den = (p1[0] - p2[0]) * (p3[1] - p4[1]) - (p1[1] - p2[1]) * (p3[0] - p4[0]);
-
-    // no intersection if t > 1, t < 0, u > 1, u < 0
-    const bool positiv = den > 0;
-    if (((numT - den > 0) == positiv) || ((numT > 0) != positiv) ||
-        ((numU - den > 0) == positiv) || ((numU > 0) != positiv)) {
-        return {};
-    }
-
-    // if lines are almost parallel
-    if (std::abs(den) < 0.0001) {
-        std::cout << "almost parallel lines" << std::endl;
-
-        // approximate intersection
-        // TODO: use gradient descent?
-        const real_t length1 = (p2 - p1).sqrnorm();
-        const real_t length2 = (p4 - p3).sqrnorm();
-
-        if (length1 > length2) {
-            const real_t avg_dist = ((p3 + p4) / 2 - p1).sqrnorm();
-            return std::clamp(avg_dist / length1, 0.0, 1.0);
-        } else {
-            return 0.5;
-        }
-    }
-
-    return numT / den;
-}
-
 bool Boundary::pointInPolygon(const vec2_t& p, const HEPolygon& poly, const vec2_t& dir) const {
     // test with bounding box
     const AxisAlignedBoundingBox aabb = poly.computeBoundingBox();
@@ -252,7 +179,7 @@ bool Boundary::pointInPolygon(const vec2_t& p, const HEPolygon& poly, const vec2
         const LineSegment edge = {poly.startPoint(heh), poly.endPoint(heh)};
 
         // TODO: special cases
-        if (lineIntersectFactor(edge, ray)) {
+        if (lineIntersection(edge, ray)) {
             intersections++;
         }
     }

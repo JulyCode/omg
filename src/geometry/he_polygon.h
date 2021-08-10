@@ -61,8 +61,8 @@ public:
     inline HalfEdgeHandle incomingHalfEdge(VertexHandle vh) const { return half_edges[vh].prev; }
 
     // unordered iterators
-    VertexRange vertices() const;
-    HalfEdgeRange halfEdges() const;
+    VertexRange vertices(VertexHandle start = 0) const;
+    HalfEdgeRange halfEdges(VertexHandle start = 0) const;
 
     // ordered iterators
     VertexRange verticesOrdered(VertexHandle start = 0) const;
@@ -78,6 +78,8 @@ public:
 
     AxisAlignedBoundingBox computeBoundingBox() const;
     real_t computeArea() const;
+
+    bool hasSelfIntersection() const;
 
     LineGraph toLineGraph() const;
 
