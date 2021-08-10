@@ -2,6 +2,7 @@
 #include "boundary.h"
 
 #include <iostream>
+#include <mutex>
 
 #include <boundary/marching_quads.h>
 #include <boundary/remeshing.h>
@@ -35,7 +36,7 @@ Boundary::Boundary(const BathymetryData& data, const LineGraph& poly, const Size
     for (auto it = cycles.begin(); it != cycles.end();) {
         const vec2_t& start_point = it->point(*it->vertices().begin());
 
-        if (!pointInPolygon(start_point, region)) {
+        if (!region.pointInPolygon(start_point)) {
             it = cycles.erase(it);
         } else {
             ++it;
@@ -62,19 +63,38 @@ Boundary::Boundary(const BathymetryData& data, const LineGraph& poly, const Size
         cycles.erase(cycles.begin() + outer_idx);
     }
 
-    // move the islands to holes
-    for (HEPolygon& c : cycles) {
-        if (!enclosesWater(c)) {
-            holes.push_back(std::move(c));
-        }
-    }
-
     std::cout << outer.numVertices() << " vertices" << std::endl;
 
     omg::remesh(outer, size);
+    if (outer.isDegenerated()) {
+        throw std::runtime_error("outer boundary is degenerated");
+    }
 
     std::cout << outer.numVertices() << " vertices" << std::endl;
     io::writeLegacyVTK("../../apps/outer.vtk", outer.toLineGraph());
+
+    std::cout << cycles.size() << " cycles" << std::endl;
+
+    // move the islands to holes
+    std::mutex hole_mutex;
+
+    #pragma omp parallel for
+    for (std::size_t i = 0; i < cycles.size(); i++) {
+        HEPolygon& c = cycles[i];
+
+        const vec2_t& start_point = c.point(*c.vertices().begin());
+
+        if (!enclosesWater(c) && outer.pointInPolygon(start_point)) {
+
+            omg::remesh(c, size);
+            if (!c.isDegenerated()) {
+
+                const std::lock_guard lock(hole_mutex);
+                holes.push_back(std::move(c));
+            }
+        }
+    }
+    std::cout << holes.size() << " holes" << std::endl;
 }
 
 void Boundary::convertToRegion(const LineGraph& poly) {
@@ -159,33 +179,6 @@ void Boundary::computeIntersections(const LineGraph& coast, IntersectionList& in
         intersections[r_eh] = edge_ints;
         t_list.clear();
     }
-}
-
-bool Boundary::pointInPolygon(const vec2_t& p, const HEPolygon& poly, const vec2_t& dir) const {
-    // test with bounding box
-    const AxisAlignedBoundingBox aabb = poly.computeBoundingBox();
-    if (p[0] < aabb.min[0] || p[0] > aabb.max[0] || p[1] < aabb.min[1] || p[1] > aabb.max[1]) {
-        return false;
-    }
-
-    // construct ray
-    const real_t max_length = std::max(aabb.max[0] - aabb.min[0], aabb.max[1] - aabb.min[1]);
-    const vec2_t end = p + 2 * max_length * dir.normalized();
-    const LineSegment ray = {p, end};
-
-    std::size_t intersections = 0;
-    for (HEPolygon::HalfEdgeHandle heh : poly.halfEdges()) {
-
-        const LineSegment edge = {poly.startPoint(heh), poly.endPoint(heh)};
-
-        // TODO: special cases
-        if (lineIntersection(edge, ray)) {
-            intersections++;
-        }
-    }
-
-    // in polygon if number of intersections is odd
-    return intersections % 2 != 0;
 }
 
 void Boundary::clampToRegion(LineGraph& coast, AdjacencyList& adjacency, const IntersectionList& intersections) const {
@@ -294,7 +287,7 @@ void Boundary::cutEdge(LineGraph& coast, AdjacencyList& adjacency, EHandle edge,
 
     // connect the vertex inside to the cut
     VHandle inside;
-    if (pointInPolygon(coast.getPoint(v1), region)) {
+    if (region.pointInPolygon(coast.getPoint(v1))) {
         inside = v1;
     } else {
         inside = v2;

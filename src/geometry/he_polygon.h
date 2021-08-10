@@ -73,6 +73,8 @@ public:
 
     bool isValid(std::size_t handle) const;
 
+    bool isDegenerated() const;
+
     // invalidates all handles!
     void garbageCollect();
 
@@ -80,6 +82,8 @@ public:
     real_t computeArea() const;
 
     bool hasSelfIntersection() const;
+
+    bool pointInPolygon(const vec2_t& p, const vec2_t& dir = {1, 1}) const;
 
     LineGraph toLineGraph() const;
 

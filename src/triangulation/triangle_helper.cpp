@@ -1,6 +1,8 @@
 
 #include "triangle_helper.h"
 
+#include <iostream>
+
 #include <Triangle/jrs_triangle.h>
 #include <triangle_api.h>
 
@@ -23,7 +25,21 @@ static void restrictToInt(const LineGraph& outline) {
 template<typename io_t>
 TriangleIn<io_t>::TriangleIn(const Boundary& boundary) {
 
-    const LineGraph outline = boundary.getOuter().toLineGraph();
+    // combine outer and holes
+    omg::LineGraph outline = boundary.getOuter().toLineGraph();
+    std::size_t offset = outline.getPoints().size();
+
+    for (const omg::HEPolygon& p : boundary.getHoles()) {
+        auto lg = p.toLineGraph();
+        for (const auto& v : lg.getPoints()) {
+            outline.addVertex(v);
+        }
+        for (const auto& e : lg.getEdges()) {
+            outline.addEdge(e.first + offset, e.second + offset);
+        }
+        offset += lg.getPoints().size();
+    }
+    omg::io::writeLegacyVTK("../../apps/complete.vtk", complete);  // TODO: remove
     restrictToInt(outline);
 
     const std::vector<vec2_t>& points = outline.getPoints();
@@ -51,8 +67,34 @@ TriangleIn<io_t>::TriangleIn(const Boundary& boundary) {
     }
     io.segmentmarkerlist = nullptr;
 
-    io.numberofholes = 0;
-    io.holelist = nullptr;
+    // create holes
+    std::vector<vec2_t> holes;
+    for (const HEPolygon& p : boundary.getHoles()) {
+
+        // try center of mass
+        // TODO: better way to find point in polygon
+
+        vec2_t center(0);
+        for (HEPolygon::VertexHandle v : p.vertices()) {
+            center += p.point(v);
+        }
+        center /= p.numVertices();
+
+        if (!p.pointInPolygon(center)) {
+            std::cout << "not in poly" << std::endl;
+            continue;
+        }
+
+        holes.push_back(center);
+    }
+
+    io.numberofholes = holes.size();
+    io.holelist = new real_t[io.numberofholes * 2];
+    for (int i = 0; i < io.numberofholes; i++) {
+        io.holelist[i * 2 + 0] = holes[i][0];
+        io.holelist[i * 2 + 1] = holes[i][1];
+    }
+
     io.numberofregions = 0;
     io.regionlist = nullptr;
 }

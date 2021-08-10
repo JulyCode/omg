@@ -30,13 +30,13 @@ int main() {
     omg::ReferenceSize sf(topo, resolution);
     std::cout << "calculating size done" << std::endl;
 
-    // omg::io::writeLegacyVTK("../../apps/size_fkt.vtk", sf, true);
+    omg::io::writeLegacyVTK("../../apps/size_fkt.vtk", sf, true);
 
     omg::Boundary coast(topo, poly, sf);
 
     // omg::io::writeLegacyVTK("../../apps/coast.vtk", coast);
 
-    return 0;
+    // return 0;
 
     omg::Mesh mesh;
     omg::TriangleTriangulator tri;

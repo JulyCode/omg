@@ -78,10 +78,6 @@ HEPolygon::VertexHandle HEPolygon::split(HalfEdgeHandle heh, real_t location) {
 }
 
 HEPolygon::VertexHandle HEPolygon::collapse(HalfEdgeHandle heh, real_t location) {
-    if (numVertices() == 3) {
-        throw std::runtime_error("polygon will degenerate if this edge is collapsed");
-    }
-
     const VertexHandle start = heh;
     const VertexHandle end = half_edges[heh].next;
     const VertexHandle prev = half_edges[start].prev;
@@ -119,6 +115,10 @@ HEPolygon::HalfEdgeRange HEPolygon::halfEdgesOrdered(HalfEdgeHandle start) const
 
 bool HEPolygon::isValid(std::size_t handle) const {
     return handle < points.size() && deleted.find(handle) == deleted.end();
+}
+
+bool HEPolygon::isDegenerated() const {
+    return numHalfEdges() < 3;
 }
 
 
@@ -226,6 +226,33 @@ bool HEPolygon::hasSelfIntersection() const {  // very slow
         }
     }
     return false;
+}
+
+bool HEPolygon::pointInPolygon(const vec2_t& p, const vec2_t& dir) const {
+    // test with bounding box
+    const AxisAlignedBoundingBox aabb = computeBoundingBox();
+    if (p[0] < aabb.min[0] || p[0] > aabb.max[0] || p[1] < aabb.min[1] || p[1] > aabb.max[1]) {
+        return false;
+    }
+
+    // construct ray
+    const real_t max_length = std::max(aabb.max[0] - aabb.min[0], aabb.max[1] - aabb.min[1]);
+    const vec2_t end = p + 2 * max_length * dir.normalized();
+    const LineSegment ray = {p, end};
+
+    std::size_t intersections = 0;
+    for (HalfEdgeHandle heh : halfEdges()) {
+
+        const LineSegment edge = {startPoint(heh), endPoint(heh)};
+
+        // TODO: special cases
+        if (lineIntersection(edge, ray)) {
+            intersections++;
+        }
+    }
+
+    // in polygon if number of intersections is odd
+    return intersections % 2 != 0;
 }
 
 LineGraph HEPolygon::toLineGraph() const {

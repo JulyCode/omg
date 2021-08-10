@@ -14,6 +14,7 @@ public:
     Boundary(const BathymetryData& data, const LineGraph& poly, const SizeFunction& size, real_t height = 0);
 
     inline const HEPolygon& getOuter() const { return outer; }
+    inline const std::vector<HEPolygon>& getHoles() const { return holes; }
 
 private:
     HEPolygon outer;
@@ -41,8 +42,6 @@ private:
     AdjacencyList getAdjacency(const LineGraph& graph) const;
 
     void computeIntersections(const LineGraph& coast, IntersectionList& intersections) const;
-
-    bool pointInPolygon(const vec2_t& p, const HEPolygon& poly, const vec2_t& dir = {1, 1}) const;
 
     void clampToRegion(LineGraph& coast, AdjacencyList& adjacency, const IntersectionList& intersections) const;
 

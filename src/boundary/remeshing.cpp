@@ -11,6 +11,10 @@ static std::size_t collapse(HEPolygon& poly, const SizeFunction& size) {
     std::size_t count = 0;
     for (HEPolygon::HalfEdgeHandle heh : poly.halfEdges()) {
 
+        if (poly.isDegenerated()) {
+            break;
+        }
+
         const vec2_t& p1 = poly.startPoint(heh);
         const vec2_t& p2 = poly.endPoint(heh);
         const vec2_t& p3 = poly.endPoint(poly.nextHalfEdge(heh));
@@ -28,7 +32,7 @@ static std::size_t collapse(HEPolygon& poly, const SizeFunction& size) {
             count++;
         }
     }
-    std::cout << count << " collapses" << std::endl;
+    //std::cout << count << " collapses" << std::endl;
     return count;
 }
 
