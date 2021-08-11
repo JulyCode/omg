@@ -6,6 +6,8 @@
 #include <Triangle/jrs_triangle.h>
 #include <triangle_api.h>
 
+#include <io/vtk_writer.h>
+
 namespace omg {
 
 static void restrictToInt(const LineGraph& outline) {
@@ -39,7 +41,7 @@ TriangleIn<io_t>::TriangleIn(const Boundary& boundary) {
         }
         offset += lg.getPoints().size();
     }
-    omg::io::writeLegacyVTK("../../apps/complete.vtk", complete);  // TODO: remove
+    io::writeLegacyVTK("../../apps/complete.vtk", outline);  // TODO: remove
     restrictToInt(outline);
 
     const std::vector<vec2_t>& points = outline.getPoints();
@@ -68,31 +70,16 @@ TriangleIn<io_t>::TriangleIn(const Boundary& boundary) {
     io.segmentmarkerlist = nullptr;
 
     // create holes
-    std::vector<vec2_t> holes;
-    for (const HEPolygon& p : boundary.getHoles()) {
-
-        // try center of mass
-        // TODO: better way to find point in polygon
-
-        vec2_t center(0);
-        for (HEPolygon::VertexHandle v : p.vertices()) {
-            center += p.point(v);
-        }
-        center /= p.numVertices();
-
-        if (!p.pointInPolygon(center)) {
-            std::cout << "not in poly" << std::endl;
-            continue;
-        }
-
-        holes.push_back(center);
-    }
-
+    const std::vector<HEPolygon>& holes = boundary.getHoles();
     io.numberofholes = holes.size();
     io.holelist = new real_t[io.numberofholes * 2];
     for (int i = 0; i < io.numberofholes; i++) {
-        io.holelist[i * 2 + 0] = holes[i][0];
-        io.holelist[i * 2 + 1] = holes[i][1];
+
+        // get a point inside the polygon
+        const vec2_t center = holes[i].getPointInPolygon();
+
+        io.holelist[i * 2 + 0] = center[0];
+        io.holelist[i * 2 + 1] = center[1];
     }
 
     io.numberofregions = 0;

@@ -84,6 +84,7 @@ public:
     bool hasSelfIntersection() const;
 
     bool pointInPolygon(const vec2_t& p, const vec2_t& dir = {1, 1}) const;
+    vec2_t getPointInPolygon() const;
 
     LineGraph toLineGraph() const;
 
@@ -92,6 +93,8 @@ private:
     std::vector<HalfEdge> half_edges;
 
     std::unordered_set<std::size_t> deleted;
+
+    VertexHandle findConvexPoint() const;
 
     template<typename Handle>
     friend class HEPolygonIterator;

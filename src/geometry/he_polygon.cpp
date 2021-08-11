@@ -20,15 +20,16 @@ void HEPolygon::setPoints(const std::vector<vec2_t>& polygon) {
 
     // compute polygon orientation
     // see https://en.wikipedia.org/wiki/Curve_orientation
-    std::size_t index = 0;
+
     // get point on convex hull
-    vec2_t point = polygon[0];
+    std::size_t index = 0;
+    vec2_t pos = polygon[0];
 
     for (std::size_t i = 0; i < polygon.size(); i++) {
         const vec2_t& p = polygon[i];
 
-        if (p[0] < point[0] || (p[0] == point[0] && p[1] < point[1])) {
-            point = p;
+        if (p[0] < pos[0] || (p[0] == pos[0] && p[1] < pos[1])) {
+            pos = p;
             index = i;
         }
     }
@@ -38,7 +39,7 @@ void HEPolygon::setPoints(const std::vector<vec2_t>& polygon) {
     const vec2_t& next = polygon[(index + 1) % polygon.size()];
 
     // compute determinant
-    const real_t det = (point[0] - prev[0]) * (next[1] - prev[1]) - (next[0] - prev[0]) * (point[1] - prev[1]);
+    const real_t det = (pos[0] - prev[0]) * (next[1] - prev[1]) - (next[0] - prev[0]) * (pos[1] - prev[1]);
 
     // copy points in counter-clockwise order
     if (det > 0) {
@@ -190,21 +191,17 @@ real_t HEPolygon::computeArea() const {
         throw std::runtime_error("empty polygon has no area");
     }
 
-    // calculate center of mass
-    vec2_t sum(0);
-    for (VertexHandle v : vertices()) {
-        sum += point(v);
-    }
-    const vec3_t center = toVec3(sum / numVertices());
-
-    // sum areas formed with two consecutive points and the center
+    // shoelace algorithm
+    // see http://apodeline.free.fr/FAQ/CGAFAQ/CGAFAQ-3.html
     real_t area = 0;
     for (VertexHandle v : vertices()) {
-        const vec3_t to_next = toVec3(point(nextVertex(v)) - point(v));
-        area += to_next.cross(center).norm();
+
+        const vec2_t& p1 = point(v);
+        const vec2_t& p2 = point(nextVertex(v));
+        area += (p1[0] + p2[0]) * (p2[1] - p1[1]);
     }
 
-    return std::abs(area / 2);
+    return area / 2;
 }
 
 bool HEPolygon::hasSelfIntersection() const {  // very slow
@@ -255,6 +252,56 @@ bool HEPolygon::pointInPolygon(const vec2_t& p, const vec2_t& dir) const {
     return intersections % 2 != 0;
 }
 
+vec2_t HEPolygon::getPointInPolygon() const {  // TODO: assert that adjacent edges are not parallel
+    // get arbitrary point in polygon
+    // see http://apodeline.free.fr/FAQ/CGAFAQ/CGAFAQ-3.html
+
+    const VertexHandle va = findConvexPoint();
+    const VertexHandle vb = nextVertex(va);
+    const VertexHandle vc = prevVertex(va);
+
+    // get convex point and neighbor points
+    const vec2_t& a = point(va);
+    const vec2_t& b = point(vb);
+    const vec2_t& c = point(vc);
+
+    real_t max_alpha = -1;
+    vec2_t nearest_point(0);
+
+    // test if other points are in the triangle abc
+    for (VertexHandle v : vertices()) {
+        if (v == va || v == vb || v == vc) {
+            continue;
+        }
+
+        const vec2_t& p = point(v);
+
+        // compute barycentric coordinates
+        // see https://en.wikipedia.org/wiki/Barycentric_coordinate_system
+        const real_t num_alpha = (b[1] - c[1]) * (p[0] - c[0]) + (c[0] - b[0]) * (p[1] - c[1]);
+        const real_t num_beta = (c[1] - a[1]) * (p[0] - c[0]) + (a[0] - c[0]) * (p[1] - c[1]);
+        const real_t div = 1 / ((b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1]));
+
+        const real_t alpha = num_alpha * div;
+        const real_t beta = num_beta * div;
+
+        // if p is in abc check if it is closer to a
+        if (alpha >= 0 && beta >= 0 && alpha + beta < 1) {
+
+            if (alpha > max_alpha) {
+                max_alpha = alpha;
+                nearest_point = p;
+            }
+        }
+    }
+
+    if (max_alpha < 0) {  // no point in abc
+        return (a + b + c) / 3;
+    } else {
+        return (a + nearest_point) / 2;
+    }
+}
+
 LineGraph HEPolygon::toLineGraph() const {
     LineGraph graph;
 
@@ -269,6 +316,27 @@ LineGraph HEPolygon::toLineGraph() const {
     }
 
     return graph;
+}
+
+HEPolygon::VertexHandle HEPolygon::findConvexPoint() const {
+    // get point on convex hull
+    bool init = true;
+
+    VertexHandle handle = 0;
+    vec2_t pos(0);
+
+    for (VertexHandle v : vertices()) {
+        const vec2_t& p = point(v);
+
+        if (init || p[0] < pos[0] || (p[0] == pos[0] && p[1] < pos[1])) {
+            pos = p;
+            handle = v;
+
+            init = false;
+        }
+    }
+
+    return handle;
 }
 
 
