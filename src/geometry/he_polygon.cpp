@@ -1,8 +1,6 @@
 
 #include "he_polygon.h"
 
-#include <cstring>
-
 #include <geometry/line_intersection.h>
 
 namespace omg {
@@ -145,8 +143,16 @@ void HEPolygon::garbageCollect() {
             continue;
         }
 
-        std::memmove(points_begin + dst, points_begin + src, count * sizeof(vec2_t));
-        std::memmove(he_begin + dst, he_begin + src, count * sizeof(HalfEdge));
+        for (std::size_t j = 0; j < count; j++) {
+
+            // copy point and halfedge
+            points[dst + j] = points[src + j];
+            half_edges[dst + j] = half_edges[src + j];
+
+            // adjust connectivity
+            half_edges[half_edges[dst + j].next].prev = dst + j;
+            half_edges[half_edges[dst + j].prev].next = dst + j;
+        }
     }
 
     // delete ramaining elements at the end

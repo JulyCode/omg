@@ -69,6 +69,7 @@ Boundary::Boundary(const BathymetryData& data, const LineGraph& poly, const Size
     if (outer.isDegenerated()) {
         throw std::runtime_error("outer boundary is degenerated");
     }
+    outer.garbageCollect();
 
     std::cout << outer.numVertices() << " vertices" << std::endl;
     io::writeLegacyVTK("../../apps/outer.vtk", LineGraph(outer));
@@ -88,6 +89,7 @@ Boundary::Boundary(const BathymetryData& data, const LineGraph& poly, const Size
 
             omg::simplifyPolygon(c, size);
             if (!c.isDegenerated()) {
+                c.garbageCollect();
 
                 const std::lock_guard lock(hole_mutex);
                 holes.push_back(std::move(c));
