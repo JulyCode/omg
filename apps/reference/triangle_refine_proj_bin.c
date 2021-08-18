@@ -1633,12 +1633,13 @@ int triunsuitable(triorg, tridest, triapex, area)
     tgr3 = topo_grad[iy][ix];
   }
 
-  // I guess the current resolution ???
+  // length of current triangle in meters
+  // with radius of earth = 6367500
   double le=sqrt(maxlen)*(PI/180.)*6367500.;
 
   dep=ONETHIRD*dep;  // average depth
 
-  if (dep<-500.0) dep=-dep;  // flip depths below -500 m, why?
+  if (dep<-500.0) dep=-dep;  // flip heights above 500 m, why?
 
   // maximum gradient
   float maxtgr = (tgr2 > tgr1) ? tgr2 : tgr1;
@@ -1651,9 +1652,9 @@ int triunsuitable(triorg, tridest, triapex, area)
 
   mindepth=0.1*(dx_min*dx_min)/(factor*factor);  // already has this value
 
-  if (dep<mindepth) dep=mindepth;  // clamp depth
+  if (dep<mindepth) dep=mindepth;  // clamp depth to below 10 meters?
 
-  // check if triangle is in prio area
+  // check if triangle is in prio area and too small
   inprio=0;
   for (int i=0;i<nprio;i++)
   {
@@ -1666,13 +1667,14 @@ int triunsuitable(triorg, tridest, triapex, area)
     // distance to center of prio area
     float priodist=sqrt((triorg[0]-priox)*(triorg[0]-priox) + (triorg[1]-prioy)*(triorg[1]-prioy));
 
-    // ???
+    // cfl condition
+    // compare global time limit with ?
     int condition = le/sqrt(9.81*dep)>factor;
 
-    // check if in inner radius and ???
+    // check if in inner radius and triangle is larger than resolution
     int in_inner_radius = priodist<prior1 && le>=priores;
 
-    // check if between inner and outer radius and ???
+    // check if between inner and outer radius and interpolated resolution is not met
     int between_inner_and_outer = priodist>=prior1 && priodist<prior2
       && le>=priores+(priodist-prior1)*(dx_cst_loc-priores)/(prior2-prior1);
 

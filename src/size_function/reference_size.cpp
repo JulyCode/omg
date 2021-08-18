@@ -49,7 +49,7 @@ ReferenceSize::ReferenceSize(const BathymetryData& data, const Resolution& resol
 
 real_t ReferenceSize::calculateSize(const size2_t& idx, const BathymetryData& data, const Resolution& res) const {
 
-    const vec2_t position = toVec2(idx) * getCellSize() + getBoundingBox().min;
+    const vec2_t position = getPoint(idx);
     real_t depth = -static_cast<real_t>(data.grid(idx));
     const real_t gradient = data.computeGradient(idx).norm() / degreesToMeters(1.0);
 

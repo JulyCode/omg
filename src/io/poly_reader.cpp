@@ -52,7 +52,7 @@ static void readVertices(std::ifstream& file, VertexBuffer& vb, std::size_t num_
     }
 }
 
-Polygon readPoly(const std::string& filename) {
+LineGraph readPoly(const std::string& filename) {
 
     const std::filesystem::path file_path(filename);
 
@@ -60,7 +60,7 @@ Polygon readPoly(const std::string& filename) {
         throw std::runtime_error("Wrong file format: " + filename + " expected: .poly");
     }
 
-    Polygon poly;
+    LineGraph poly;
 
     // open file
     std::ifstream file(filename);
@@ -98,7 +98,9 @@ Polygon readPoly(const std::string& filename) {
         readVertices(file, v_buf, num_vertices);
     }
 
-    poly.addVertices(v_buf.vertices);
+    for (const vec2_t& v : v_buf.vertices) {
+        poly.addVertex(v);
+    }
 
     ignoreComments(file);
     // read segments info
@@ -107,8 +109,7 @@ Polygon readPoly(const std::string& filename) {
 
     // read segments
     std::string ignore;
-    std::size_t start_vertex, end_vertex;
-    PolygonEdge edge;
+    LineGraph::VertexHandle start_vertex, end_vertex;
 
     for (std::size_t i = 0; i < num_segments; i++) {
 
@@ -122,9 +123,7 @@ Polygon readPoly(const std::string& filename) {
             end_vertex -= 1;
         }
 
-        edge.first = start_vertex;
-        edge.second = end_vertex;
-        poly.addEdge(edge);
+        poly.addEdge(start_vertex, end_vertex);
     }
 
     // TODO: handle holes

@@ -15,12 +15,10 @@ TriangleTriangulator::TriangleTriangulator() {
 
 TriangleTriangulator::~TriangleTriangulator() {}
 
-void TriangleTriangulator::generateMesh(const Polygon& outline, const SizeFunction& size, Mesh& out_mesh) {
-    restrictToInt(outline);
-
+void TriangleTriangulator::generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh) {
     size_function = &size;
 
-    TriangleIn<jrs::triangulateio> in(outline);
+    TriangleIn<jrs::triangulateio> in(boundary);
     TriangleOut<jrs::triangulateio> out;
 
     // Q: no console output

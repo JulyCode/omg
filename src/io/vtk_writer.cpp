@@ -15,6 +15,17 @@ static void swapEndianess(T& var) {
     }
 }
 
+static void writeLegacyHeader(std::ofstream& file, const std::string& name, bool binary) {
+	file << "# vtk DataFile Version 3.0" << std::endl;
+	file << name << std::endl;
+
+	if (binary) {
+		file << "BINARY" << std::endl;
+	} else {
+		file << "ASCII" << std::endl;
+    }
+}
+
 template<typename T>
 static void writeLegacyVTK(const std::string& filename, const ScalarField<T>& data,
                            bool binary, const std::string& type) {
@@ -30,14 +41,7 @@ static void writeLegacyVTK(const std::string& filename, const ScalarField<T>& da
 		file.open(filename);
     }
 
-	file << "# vtk DataFile Version 3.0" << std::endl;
-	file << filename << std::endl;
-
-	if (binary) {
-		file << "BINARY" << std::endl;
-	} else {
-		file << "ASCII" << std::endl;
-    }
+	writeLegacyHeader(file, filename, binary);
 
 	file << "DATASET STRUCTURED_POINTS" << std::endl;
 	file << "DIMENSIONS " << grid_size[0] << " " << grid_size[1] << " " << 1 << std::endl;
@@ -81,6 +85,60 @@ void writeLegacyVTK<double>(const std::string& filename, const ScalarField<doubl
 template<>
 void writeLegacyVTK<int16_t>(const std::string& filename, const ScalarField<int16_t>& data, bool binary) {
     writeLegacyVTK(filename, data, binary, "short 1");
+}
+
+
+void writeLegacyVTK(const std::string& filename, const LineGraph& poly) {
+
+	std::ofstream file(filename);
+
+	writeLegacyHeader(file, filename, false);
+
+	file << "DATASET POLYDATA" << std::endl;
+	file << "POINTS " << poly.getPoints().size() << " float" << std::endl;
+
+	for (const vec2_t& v : poly.getPoints()) {
+
+		file << v[0] << " " << v[1] << " 0.0" << "\n";
+	}
+
+	file << "LINES " << poly.getEdges().size() << " " << poly.getEdges().size() * 3 << std::endl;
+
+	for (const LineGraph::Edge& e : poly.getEdges()) {
+
+		file << "2 " << e.first << " " << e.second << "\n";
+	}
+
+	file.close();
+}
+
+void writeLegacyVTK(const std::string& filename, const Mesh& mesh) {
+
+	std::ofstream file(filename);
+
+	writeLegacyHeader(file, filename, false);
+
+	file << "DATASET POLYDATA" << std::endl;
+	file << "POINTS " << mesh.n_vertices() << " float" << std::endl;
+
+	for (const auto& v : mesh.vertices()) {
+
+		const Mesh::Point& p = mesh.point(v);
+		file << p[0] << " " << p[1] << " " << p[2] << "\n";
+	}
+
+	file << "POLYGONS " << mesh.n_faces() << " " << mesh.n_faces() * 4 << std::endl;
+
+	for (const auto& f : mesh.faces()) {
+
+		file << "3";
+		for (const auto& v : f.vertices()) {
+			file << " " << v.idx();
+		}
+		file << "\n";
+	}
+
+	file.close();
 }
 
 }

@@ -2,12 +2,12 @@
 
 #include <string>
 
-#include <geometry/polygon.h>
+#include <geometry/line_graph.h>
 
 namespace omg {
 namespace io {
 
-Polygon readPoly(const std::string& filename);
+LineGraph readPoly(const std::string& filename);
 
 }
 }

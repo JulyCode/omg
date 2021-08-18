@@ -1,25 +1,50 @@
 
 #include "triangle_helper.h"
 
+#include <iostream>
+
 #include <Triangle/jrs_triangle.h>
 #include <triangle_api.h>
 
+#include <io/vtk_writer.h>
+
 namespace omg {
+
+static void restrictToInt(const LineGraph& outline) {
+    const std::size_t num_vertices = outline.getPoints().size();
+    const std::size_t num_edges = outline.getEdges().size();
+
+    // throw error if sizes exceed ints
+    if (!fitsInt(num_vertices)) {
+        throw std::runtime_error("Too many vertices in outline");
+    }
+    if (!fitsInt(num_edges)) {
+        throw std::runtime_error("Too many edges in outline");
+    }
+}
 
 // TriangleIn implementation
 template<typename io_t>
-TriangleIn<io_t>::TriangleIn(const Polygon& poly) {
+TriangleIn<io_t>::TriangleIn(const Boundary& boundary) {
 
-    const std::vector<vec2_t>& vertices = poly.getVertices();
-    const std::vector<PolygonEdge>& edges = poly.getEdges();
+    // combine outer and holes
+    std::vector<HEPolygon> polys = boundary.getHoles();
+    polys.push_back(boundary.getOuter());
+    omg::LineGraph outline = LineGraph::combinePolygons(polys);
+
+    io::writeLegacyVTK("../../apps/complete.vtk", outline);  // TODO: remove
+    restrictToInt(outline);
+
+    const std::vector<vec2_t>& points = outline.getPoints();
+    const std::vector<LineGraph::Edge>& edges = outline.getEdges();
 
     // initialize input triangulateio struct
-    io.numberofpoints = vertices.size();
-    io.pointlist = new real_t[vertices.size() * 2];
-    // copy vertices
-    for (std::size_t i = 0; i < vertices.size(); i++) {
-        io.pointlist[i * 2 + 0] = vertices[i][0];
-        io.pointlist[i * 2 + 1] = vertices[i][1];
+    io.numberofpoints = points.size();
+    io.pointlist = new real_t[points.size() * 2];
+    // copy points
+    for (std::size_t i = 0; i < points.size(); i++) {
+        io.pointlist[i * 2 + 0] = points[i][0];
+        io.pointlist[i * 2 + 1] = points[i][1];
     }
 
     io.numberofpointattributes = 0;
@@ -35,8 +60,19 @@ TriangleIn<io_t>::TriangleIn(const Polygon& poly) {
     }
     io.segmentmarkerlist = nullptr;
 
-    io.numberofholes = 0;
-    io.holelist = nullptr;
+    // create holes
+    const std::vector<HEPolygon>& holes = boundary.getHoles();
+    io.numberofholes = holes.size();
+    io.holelist = new real_t[io.numberofholes * 2];
+    for (int i = 0; i < io.numberofholes; i++) {
+
+        // get a point inside the polygon
+        const vec2_t center = holes[i].getPointInPolygon();
+
+        io.holelist[i * 2 + 0] = center[0];
+        io.holelist[i * 2 + 1] = center[1];
+    }
+
     io.numberofregions = 0;
     io.regionlist = nullptr;
 }
@@ -80,7 +116,7 @@ void TriangleOut<io_t>::toMesh(Mesh& mesh) const {  // TODO: error checking
     }
 
     // convert result to OpenMesh
-    // add vertices
+    // add points
     std::vector<Mesh::VertexHandle> vertex_handles;
     vertex_handles.reserve(io.numberofpoints);
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <geometry/polygon.h>
+#include <boundary/boundary.h>
 #include <geometry/mesh.h>
 
 namespace omg {
@@ -10,7 +10,7 @@ namespace omg {
 template<typename io_t>
 class TriangleIn {
 public:
-    explicit TriangleIn(const Polygon& outline);
+    explicit TriangleIn(const Boundary& boundary);
     ~TriangleIn();
 
     io_t io;
