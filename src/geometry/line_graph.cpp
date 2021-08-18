@@ -115,7 +115,7 @@ AxisAlignedBoundingBox LineGraph::computeBoundingBox() const {
     return aabb;
 }
 
-bool LineGraph::hasSelfIntersection() const {
+bool LineGraph::hasSelfIntersection() const {  // TODO: improve performance
     for (const Edge& e1 : getEdges()) {
         const LineSegment l1 = {getPoint(e1.first), getPoint(e1.second)};
 

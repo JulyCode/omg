@@ -83,7 +83,7 @@ public:
 
     bool hasSelfIntersection() const;
 
-    bool pointInPolygon(const vec2_t& p, const vec2_t& dir = {1, 1}) const;
+    bool pointInPolygon(const vec2_t& p, vec2_t dir = {1, 1}) const;
     vec2_t getPointInPolygon() const;
 
 private:

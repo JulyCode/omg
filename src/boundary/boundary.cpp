@@ -19,6 +19,7 @@ Boundary::Boundary(const BathymetryData& data, const LineGraph& poly, const Size
     convertToRegion(poly);
 
     LineGraph coast = marchingQuads(data, height);
+    // io::writeLegacyVTK("../../apps/coast.vtk", coast);
 
     // search adjacent edges per vertex
     AdjacencyList adjacency = getAdjacency(coast);
@@ -104,6 +105,8 @@ Boundary::Boundary(const BathymetryData& data, const LineGraph& poly, const Size
     if (complete.hasSelfIntersection()) {
         std::cout << "boundary intersection" << std::endl;
     }
+
+    // io::writeLegacyVTK("../../apps/complete.vtk", complete);
 }
 
 void Boundary::convertToRegion(const LineGraph& poly) {
@@ -370,6 +373,7 @@ std::vector<HEPolygon> Boundary::findCycles(const LineGraph& coast, const Adjace
 }
 
 std::size_t Boundary::findOuterPolygon(const std::vector<HEPolygon>& cycles) {
+    // TODO: fix error, when smaller lake is selected
     if (cycles.empty()) {
         throw std::runtime_error("cycles is empty");
     }
@@ -404,7 +408,8 @@ std::size_t Boundary::findOuterPolygon(const std::vector<HEPolygon>& cycles) {
     return largest;
 }
 
-bool Boundary::enclosesWater(const HEPolygon& poly) const {  // TODO: still not completely working
+bool Boundary::enclosesWater(const HEPolygon& poly) const {
+    // TODO: still not completely working, tiny lakes are not correctly identified
     // test if the polygon surrounds water or land
 
     for (HEPolygon::HalfEdgeHandle heh : poly.halfEdges()) {
@@ -414,10 +419,7 @@ bool Boundary::enclosesWater(const HEPolygon& poly) const {  // TODO: still not 
         const vec2_t& p2 = poly.endPoint(heh);
 
         // ignore points that are cut corners of the region polygon
-        if (data.getValue<real_t>(p1) < height - 0.5 || data.getValue<real_t>(p2) < height - 0.5) {
-            const auto a = data.getValue<real_t>(p1);
-            const auto b = data.getValue<real_t>(p2);
-            const auto c = height - 0.5;
+        if (data.getValue<real_t>(p1) < height - 0.1 || data.getValue<real_t>(p2) < height - 0.1) {
             continue;
         }
 

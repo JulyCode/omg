@@ -1,6 +1,9 @@
 
 #include "he_polygon.h"
 
+#include <iostream>
+#include <random>
+
 #include <geometry/line_intersection.h>
 
 namespace omg {
@@ -129,9 +132,6 @@ void HEPolygon::garbageCollect() {
     std::sort(del.begin(), del.end());
     del.push_back(points.size());  // copy until end
 
-    vec2_t* points_begin = points.data();
-    HalfEdge* he_begin = half_edges.data();
-
     // move parts between deleted elements to the left
     for (std::size_t i = 0; i < del.size() - 1; i++) {
 
@@ -231,28 +231,55 @@ bool HEPolygon::hasSelfIntersection() const {  // very slow
     return false;
 }
 
-bool HEPolygon::pointInPolygon(const vec2_t& p, const vec2_t& dir) const {
+bool HEPolygon::pointInPolygon(const vec2_t& p, vec2_t dir) const {
     // test with bounding box
     const AxisAlignedBoundingBox aabb = computeBoundingBox();
     if (p[0] < aabb.min[0] || p[0] > aabb.max[0] || p[1] < aabb.min[1] || p[1] > aabb.max[1]) {
         return false;
     }
 
-    // construct ray
-    const real_t max_length = std::max(aabb.max[0] - aabb.min[0], aabb.max[1] - aabb.min[1]);
-    const vec2_t end = p + 2 * max_length * dir.normalized();
-    const LineSegment ray = {p, end};
+    std::size_t intersections;
 
-    std::size_t intersections = 0;
-    for (HalfEdgeHandle heh : halfEdges()) {
+    int tries = 0;
+    bool repeat = false;
+    do {
+        // construct ray
+        const real_t max_length = std::max(aabb.max[0] - aabb.min[0], aabb.max[1] - aabb.min[1]);
+        const vec2_t end = p + 2 * max_length * dir.normalized();
+        const LineSegment ray = {p, end};
 
-        const LineSegment edge = {startPoint(heh), endPoint(heh)};
+        intersections = 0;
+        for (HalfEdgeHandle heh : halfEdges()) {
 
-        // TODO: special cases
-        if (lineIntersection(edge, ray)) {
-            intersections++;
+            const LineSegment edge = {startPoint(heh), endPoint(heh)};
+
+            // TODO: special cases
+            std::optional<real_t> t = lineIntersectionFactor(edge, ray);
+            if (t) {
+
+                if (*t == 0 || *t == 1) {
+                    // std::cout << "edge case" << std::endl;
+
+                    // generate new random direction
+                    static std::default_random_engine rnd;
+                    static std::uniform_real_distribution<real_t> dis(-1, 1);
+                    dir[0] = dis(rnd);
+                    dir[1] = dis(rnd);
+                    repeat = true;
+                    break;
+                }
+                intersections++;
+            }
         }
-    }
+
+        ++tries;
+        if (tries > 100) {
+            // exit after 100 tries
+            // std::cout << "no direction found for pointInPolygon test" << std::endl;
+            break;
+        }
+
+    } while (repeat);
 
     // in polygon if number of intersections is odd
     return intersections % 2 != 0;

@@ -6,7 +6,7 @@ namespace omg {
 
 class ConstantSize : public SizeFunction {
 public:
-    explicit ConstantSize(const AxisAlignedBoundingBox& aabb, real_t constant_size);
+    ConstantSize(const AxisAlignedBoundingBox& aabb, real_t constant_size);
 };
 
 }
