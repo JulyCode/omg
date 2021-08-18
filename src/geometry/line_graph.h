@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include <geometry/types.h>
+#include <geometry/he_polygon.h>
 
 namespace omg {
 
@@ -14,8 +14,10 @@ public:
 
 public:
     LineGraph() = default;
+    explicit LineGraph(const HEPolygon& poly);
 
     static LineGraph createRectangle(const AxisAlignedBoundingBox& aabb);
+    static LineGraph combinePolygons(const std::vector<HEPolygon>& polys);
 
     VertexHandle addVertex(const vec2_t& p);
     EdgeHandle addEdge(VertexHandle v1, VertexHandle v2);

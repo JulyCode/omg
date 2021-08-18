@@ -4,7 +4,7 @@
 #include <unordered_map>
 
 #include <topology/scalar_field.h>
-#include <geometry/he_polygon.h>
+#include <geometry/line_graph.h>
 #include <size_function/size_function.h>
 
 namespace omg {

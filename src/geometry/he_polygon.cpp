@@ -302,22 +302,6 @@ vec2_t HEPolygon::getPointInPolygon() const {  // TODO: assert that adjacent edg
     }
 }
 
-LineGraph HEPolygon::toLineGraph() const {
-    LineGraph graph;
-
-    const std::size_t num = numVertices();
-    std::size_t idx = 0;
-    for (VertexHandle v : verticesOrdered()) {
-
-        graph.addVertex(point(v));
-
-        graph.addEdge(idx, (idx + 1) % num);
-        idx++;
-    }
-
-    return graph;
-}
-
 HEPolygon::VertexHandle HEPolygon::findConvexPoint() const {
     // get point on convex hull
     bool init = true;

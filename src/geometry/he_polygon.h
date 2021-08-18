@@ -2,7 +2,7 @@
 
 #include <unordered_set>
 
-#include <geometry/line_graph.h>
+#include <geometry/types.h>
 
 namespace omg {
 
@@ -85,8 +85,6 @@ public:
 
     bool pointInPolygon(const vec2_t& p, const vec2_t& dir = {1, 1}) const;
     vec2_t getPointInPolygon() const;
-
-    LineGraph toLineGraph() const;
 
 private:
     std::vector<vec2_t> points;

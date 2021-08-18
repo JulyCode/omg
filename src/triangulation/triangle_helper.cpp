@@ -28,19 +28,10 @@ template<typename io_t>
 TriangleIn<io_t>::TriangleIn(const Boundary& boundary) {
 
     // combine outer and holes
-    omg::LineGraph outline = boundary.getOuter().toLineGraph();
-    std::size_t offset = outline.getPoints().size();
+    std::vector<HEPolygon> polys = boundary.getHoles();
+    polys.push_back(boundary.getOuter());
+    omg::LineGraph outline = LineGraph::combinePolygons(polys);
 
-    for (const omg::HEPolygon& p : boundary.getHoles()) {
-        auto lg = p.toLineGraph();
-        for (const auto& v : lg.getPoints()) {
-            outline.addVertex(v);
-        }
-        for (const auto& e : lg.getEdges()) {
-            outline.addEdge(e.first + offset, e.second + offset);
-        }
-        offset += lg.getPoints().size();
-    }
     io::writeLegacyVTK("../../apps/complete.vtk", outline);  // TODO: remove
     restrictToInt(outline);
 

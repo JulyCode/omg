@@ -5,6 +5,6 @@
 
 namespace omg {
 
-void remesh(HEPolygon& poly, const SizeFunction& size);
+void simplifyPolygon(HEPolygon& poly, const SizeFunction& size);
 
 }

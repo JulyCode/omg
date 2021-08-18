@@ -5,6 +5,20 @@
 
 namespace omg {
 
+LineGraph::LineGraph(const HEPolygon& poly) {
+    // convert from HEPolygon to LineGraph
+
+    const std::size_t num = poly.numVertices();
+    std::size_t idx = 0;
+    for (HEPolygon::VertexHandle v : poly.verticesOrdered()) {
+
+        addVertex(poly.point(v));
+
+        addEdge(idx, (idx + 1) % num);
+        idx++;
+    }
+}
+
 LineGraph LineGraph::createRectangle(const AxisAlignedBoundingBox& aabb) {
     LineGraph lg;
 
@@ -17,6 +31,27 @@ LineGraph LineGraph::createRectangle(const AxisAlignedBoundingBox& aabb) {
     lg.addEdge(v1, v2);
     lg.addEdge(v2, v3);
     lg.addEdge(v3, v0);
+
+    return lg;
+}
+
+LineGraph LineGraph::combinePolygons(const std::vector<HEPolygon>& polys) {
+    LineGraph lg;
+    std::size_t offset = 0;
+
+    // combine all HEPolygons into one LineGraph
+    for (const HEPolygon& p : polys) {
+
+        LineGraph l(p);
+        for (const vec2_t& v : l.getPoints()) {
+            lg.addVertex(v);
+        }
+        for (const Edge& e : l.getEdges()) {
+            lg.addEdge(e.first + offset, e.second + offset);
+        }
+
+        offset += l.getPoints().size();
+    }
 
     return lg;
 }

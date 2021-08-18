@@ -5,7 +5,7 @@
 #include <mutex>
 
 #include <boundary/marching_quads.h>
-#include <boundary/remeshing.h>
+#include <boundary/simplification.h>
 #include <geometry/line_intersection.h>
 
 #include <io/vtk_writer.h>
@@ -65,13 +65,13 @@ Boundary::Boundary(const BathymetryData& data, const LineGraph& poly, const Size
 
     std::cout << outer.numVertices() << " vertices" << std::endl;
 
-    omg::remesh(outer, size);
+    omg::simplifyPolygon(outer, size);
     if (outer.isDegenerated()) {
         throw std::runtime_error("outer boundary is degenerated");
     }
 
     std::cout << outer.numVertices() << " vertices" << std::endl;
-    io::writeLegacyVTK("../../apps/outer.vtk", outer.toLineGraph());
+    io::writeLegacyVTK("../../apps/outer.vtk", LineGraph(outer));
 
     std::cout << cycles.size() << " cycles" << std::endl;
 
@@ -86,7 +86,7 @@ Boundary::Boundary(const BathymetryData& data, const LineGraph& poly, const Size
 
         if (!enclosesWater(c) && outer.pointInPolygon(start_point)) {
 
-            omg::remesh(c, size);
+            omg::simplifyPolygon(c, size);
             if (!c.isDegenerated()) {
 
                 const std::lock_guard lock(hole_mutex);
@@ -95,6 +95,13 @@ Boundary::Boundary(const BathymetryData& data, const LineGraph& poly, const Size
         }
     }
     std::cout << holes.size() << " holes" << std::endl;
+
+    std::vector<HEPolygon> polys = holes;
+    polys.push_back(outer);
+    omg::LineGraph complete = LineGraph::combinePolygons(polys);
+    if (complete.hasSelfIntersection()) {
+        std::cout << "boundary intersection" << std::endl;
+    }
 }
 
 void Boundary::convertToRegion(const LineGraph& poly) {
@@ -395,7 +402,7 @@ std::size_t Boundary::findOuterPolygon(const std::vector<HEPolygon>& cycles) {
     return largest;
 }
 
-bool Boundary::enclosesWater(const HEPolygon& poly) const {
+bool Boundary::enclosesWater(const HEPolygon& poly) const {  // TODO: still not completely working
     // test if the polygon surrounds water or land
 
     for (HEPolygon::HalfEdgeHandle heh : poly.halfEdges()) {
@@ -405,7 +412,10 @@ bool Boundary::enclosesWater(const HEPolygon& poly) const {
         const vec2_t& p2 = poly.endPoint(heh);
 
         // ignore points that are cut corners of the region polygon
-        if (data.getValue<real_t>(p1) < -0.1 || data.getValue<real_t>(p2) < -0.1) {
+        if (data.getValue<real_t>(p1) < height - 0.5 || data.getValue<real_t>(p2) < height - 0.5) {
+            const auto a = data.getValue<real_t>(p1);
+            const auto b = data.getValue<real_t>(p2);
+            const auto c = height - 0.5;
             continue;
         }
 
