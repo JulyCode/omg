@@ -1,6 +1,8 @@
 
 #include "size_function.h"
 
+#include <util.h>
+
 namespace omg {
 
 SizeFunction::SizeFunction(const AxisAlignedBoundingBox& aabb, const size2_t& grid_size)

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <geometry/types.h>
+#include <types.h>
 
 #include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
 

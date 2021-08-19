@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <geometry/mesh.h>
+#include <mesh/mesh.h>
 
 namespace omg {
 namespace io {

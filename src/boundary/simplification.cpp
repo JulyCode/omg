@@ -1,8 +1,7 @@
 
 #include "simplification.h"
 
-#include <iostream>
-
+#include <util.h>
 #include <geometry/line_intersection.h>
 
 namespace omg {

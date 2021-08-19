@@ -1,7 +1,7 @@
 #pragma once
 
 #include <boundary/boundary.h>
-#include <geometry/mesh.h>
+#include <mesh/mesh.h>
 
 namespace omg {
 

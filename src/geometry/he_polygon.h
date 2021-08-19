@@ -2,7 +2,7 @@
 
 #include <unordered_set>
 
-#include <geometry/types.h>
+#include <types.h>
 
 namespace omg {
 
