@@ -7,10 +7,35 @@
 namespace omg {
 
 struct MeshTraits : public OpenMesh::DefaultTraits {
-    typedef vec3_t Point;
-    typedef real_t Scalar;
+    using Point = vec3_t;
+    using Scalar = real_t;
+
+    VertexTraits {
+		bool marked;
+	};
+
+    VertexAttributes(OpenMesh::Attributes::Status);
+	FaceAttributes(OpenMesh::Attributes::Status);
+	EdgeAttributes(OpenMesh::Attributes::Status);
 };
 
-typedef OpenMesh::TriMesh_ArrayKernelT<MeshTraits> Mesh;
+class Mesh : public OpenMesh::TriMesh_ArrayKernelT<MeshTraits> {
+public:
+    Mesh() = default;
+
+    inline void mark(const OpenMesh::VertexHandle& v) {
+        data(v).marked = true;
+    }
+
+    inline bool isMarked(const OpenMesh::VertexHandle& v) {
+        return data(v).marked;
+    }
+
+    inline void resetMarks() {
+	    for (const auto &v : vertices()) {
+		    data(v).marked = false;
+	    }
+    }
+};
 
 }
