@@ -8,6 +8,7 @@
 #include <triangulation/triangle_triangulator.h>
 #include <size_function/reference_size.h>
 #include <boundary/boundary.h>
+#include <mesh/remeshing.h>
 
 int main() {
 
@@ -48,4 +49,13 @@ int main() {
 
     omg::io::writeOff("../../apps/medsea.off", mesh);
     omg::io::writeLegacyVTK("../../apps/mesh.vtk", mesh);
+
+    omg::IsotropicRemeshing ir(sf);
+    ir.remesh(mesh);
+
+    std::cout << "smoothed mesh:" << std::endl;
+    std::cout << "vertices: " << mesh.n_vertices() << std::endl;
+    std::cout << "triangles: " << mesh.n_faces() << std::endl;
+
+    omg::io::writeOff("../../apps/medsea_remesh.off", mesh);
 }
