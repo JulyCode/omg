@@ -15,18 +15,18 @@ bool SizeFunction::isTriangleGood(const vec2_t& v0, const vec2_t& v1, const vec2
     const real_t s1 = getValue(v1);
     const real_t s2 = getValue(v2);
 
-    const real_t min_size = std::min(s0, std::min(s1, s2));
+    const real_t min_size = std::min({s0, s1, s2});
 
     // maximum edge length in meters as metric for triangle size
     const real_t length0 = (v0 - v1).sqrnorm();
     const real_t length1 = (v0 - v2).sqrnorm();
     const real_t length2 = (v1 - v2).sqrnorm();
-    const real_t max_length = std::sqrt(std::max(length0, std::max(length1, length2)));
+    const real_t max_length = std::sqrt(std::max({length0, length1, length2}));
 
     // convert from degrees to meters
     const real_t actual_size = degreesToMeters(max_length);
 
-    return actual_size < min_size;
+    return actual_size < min_size;  // TODO: allow slightly longer edges?
 }
 
 }

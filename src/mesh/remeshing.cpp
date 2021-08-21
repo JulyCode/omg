@@ -39,10 +39,6 @@ void IsotropicRemeshing::splitEdges(Mesh& mesh) const {
     int cnt = 0;
     for (const auto& eh : mesh.edges()) {
 
-        if (eh.is_boundary()) {
-            continue;
-        }
-
         // incident points
 		const vec2_t& p0 = toVec2(mesh.point(eh.v0()));
 		const vec2_t& p1 = toVec2(mesh.point(eh.v1()));
@@ -68,10 +64,6 @@ void IsotropicRemeshing::collapseEdges(Mesh& mesh) const {
     int cnt = 0;
     for (const auto& eh : mesh.edges()) {
 
-        if (eh.is_boundary()) {
-            continue;
-        }
-
         // incident points
 		const vec2_t& p0 = toVec2(mesh.point(eh.v0()));
 		const vec2_t& p1 = toVec2(mesh.point(eh.v1()));
@@ -85,8 +77,25 @@ void IsotropicRemeshing::collapseEdges(Mesh& mesh) const {
 		if (len < min_length) {
 
             auto heh = eh.h0();
-            if (heh.from().is_boundary()) {  // avoid collapsing vertices of the boundary
-                heh = eh.h1();
+
+            // test if the edge has a parallel neighbor edge on the boundary
+            if (eh.is_boundary()) {
+
+                const auto boundary_heh = eh.h0().is_boundary() ? eh.h0() : eh.h1();
+
+                if (isCollinear(mesh, boundary_heh, boundary_heh.prev().from())) {
+                    heh = boundary_heh;
+                } else if (isCollinear(mesh, boundary_heh, boundary_heh.next().to())) {
+                    heh = boundary_heh.opp();
+                } else {
+                    continue;
+                }
+
+            } else {
+
+                if (heh.from().is_boundary()) {  // avoid collapsing vertices of the boundary
+                    heh = eh.h1();
+                }
             }
 
 			// check if already visited
@@ -100,6 +109,23 @@ void IsotropicRemeshing::collapseEdges(Mesh& mesh) const {
     std::cout << cnt << " collapses" << std::endl;
 }
 
+bool IsotropicRemeshing::isCollinear(const Mesh& mesh, const OpenMesh::SmartHalfedgeHandle& heh,
+                                     const OpenMesh::SmartVertexHandle& vh) const {
+
+    const vec2_t p0 = toVec2(mesh.point(heh.from()));
+    const vec2_t p1 = toVec2(mesh.point(heh.to()));
+    const vec2_t p2 = toVec2(mesh.point(vh));
+
+    const real_t len0 = (p1 - p0).norm();
+    const real_t len1 = (p2 - p0).norm();
+    const real_t len2 = (p2 - p1).norm();
+
+    const real_t max_len = std::max({len0, len1, len2});
+
+    // for three points a, b ,c: check if ab + bc = ac
+    return std::abs(len0 + len1 + len2 - 2 * max_len) < max_len * 0.000001;
+}
+
 void IsotropicRemeshing::equalizeValences(Mesh& mesh) const {
     int cnt = 0;
     for (const auto& eh : mesh.edges()) {
@@ -108,15 +134,30 @@ void IsotropicRemeshing::equalizeValences(Mesh& mesh) const {
             continue;
         }
 
+        // get vertices
+        const auto& s = eh.v0();
+        const auto& t = eh.v1();
+        const auto& l = eh.h0().next().to();
+        const auto& r = eh.h1().next().to();
+
 		// get valence of relevant vertices
-		const int vs = mesh.valence(eh.v0());
-		const int vt = mesh.valence(eh.v1());
-		const int vl = mesh.valence(mesh.opposite_vh(eh.h0()));
-		const int vr = mesh.valence(mesh.opposite_vh(eh.h1()));
+		const int vs = mesh.valence(s);
+		const int vt = mesh.valence(t);
+		const int vl = mesh.valence(l);
+		const int vr = mesh.valence(r);
+
+        // get optimal valences
+        const int target_vs = computeOptimalValence(s, mesh);
+        const int target_vt = computeOptimalValence(t, mesh);
+        const int target_vl = computeOptimalValence(l, mesh);
+        const int target_vr = computeOptimalValence(r, mesh);
 
 		// compute derivation from optimal valence
-		const unsigned int e_old = std::abs(vs - 6) + std::abs(vt - 6) + std::abs(vl - 6) + std::abs(vr - 6);
-		const unsigned int e_new = std::abs(vs - 7) + std::abs(vt - 7) + std::abs(vl - 5) + std::abs(vr - 5);
+		unsigned int e_old = std::abs(vs - target_vs) + std::abs(vt - target_vt);
+        e_old +=             std::abs(vl - target_vl) + std::abs(vr - target_vr);
+
+		unsigned int e_new = std::abs(vs - target_vs - 1) + std::abs(vt - target_vt - 1);
+        e_new +=             std::abs(vl - target_vl + 1) + std::abs(vr - target_vr + 1);
 
 		if (e_new < e_old && mesh.is_flip_ok(eh)) {
 
@@ -125,6 +166,37 @@ void IsotropicRemeshing::equalizeValences(Mesh& mesh) const {
 		}
 	}
     std::cout << cnt << " flips" << std::endl;
+}
+
+int IsotropicRemeshing::computeOptimalValence(const OpenMesh::SmartVertexHandle& vh, const Mesh& mesh) const {
+    if (!vh.is_boundary()) {
+        return 6;
+    }
+
+    const vec2_t& point = toVec2(mesh.point(vh));
+
+    // get the neighbors on the boundary
+    const auto& a = vh.halfedge().prev().from();
+    const auto& b = vh.halfedge().to();
+
+    if (!a.is_boundary() || !b.is_boundary() || !vh.halfedge().is_boundary()) {
+        std::cout << "not boundary" << std::endl;
+    }
+
+    // vectors to a and b
+    const vec2_t d1 = (toVec2(mesh.point(a)) - point).normalized();
+    const vec2_t d2 = (toVec2(mesh.point(b)) - point).normalized();
+
+    // compute angle fraction
+    real_t angle = std::acos(d1.dot(d2)) / (2 * PI);
+
+    // check if bigger angle should be used
+    if (d1[0] * d2[1] - d1[1] * d2[0] < 0) {  // z component of cross product
+        angle = 1 - angle;
+    }
+
+    // valence depending on angle, but at least 2
+    return std::max<int>(std::lround(angle * 6) + 1, 2);
 }
 
 void IsotropicRemeshing::smoothVertices(Mesh& mesh) const {
