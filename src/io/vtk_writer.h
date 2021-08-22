@@ -2,7 +2,7 @@
 
 #include <topology/scalar_field.h>
 #include <geometry/line_graph.h>
-#include <geometry/mesh.h>
+#include <mesh/mesh.h>
 
 namespace omg {
 namespace io {

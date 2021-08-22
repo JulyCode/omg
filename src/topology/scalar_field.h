@@ -1,6 +1,6 @@
 #pragma once
 
-#include <geometry/types.h>
+#include <types.h>
 
 namespace omg {
 

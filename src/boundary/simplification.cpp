@@ -1,11 +1,12 @@
 
 #include "simplification.h"
 
-#include <iostream>
-
+#include <util.h>
 #include <geometry/line_intersection.h>
 
 namespace omg {
+
+static const real_t SMALLEST_ANGLE_COS = std::cos(toRadians(15.0));
 
 static std::size_t collapse(HEPolygon& poly, const SizeFunction& size) {
     std::size_t count = 0;
@@ -21,13 +22,15 @@ static std::size_t collapse(HEPolygon& poly, const SizeFunction& size) {
 
         const real_t target = size.getValue((p1 + p2) / 2);
 
-        if (degreesToMeters((p2 - p1).norm()) < target) {
-            poly.collapse(heh, 0);
-            count++;
-        }
+        bool remove = degreesToMeters((p2 - p1).norm()) < target;
 
         // fix degenerated areas
-        if (degreesToMeters((p3 - p1).norm()) < 1) {  // threshold dot product um spitze winkel zu entfernen
+        remove |= degreesToMeters((p3 - p1).norm()) < 1;  // TODO: use geoDistance?
+
+        // remove small angles
+        remove |= (p1 - p2).normalized().dot((p3 - p2).normalized()) > SMALLEST_ANGLE_COS;
+
+        if (remove) {
             poly.collapse(heh, 0);
             count++;
         }

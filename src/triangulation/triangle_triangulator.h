@@ -1,7 +1,7 @@
 #pragma once
 
 #include <triangulation/triangulator.h>
-#include <geometry/types.h>
+#include <types.h>
 
 namespace omg {
 

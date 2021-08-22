@@ -4,6 +4,8 @@
 #include <iostream>
 #include <chrono>
 
+#include <util.h>
+
 namespace omg {
 
 AreaOfInterest::AreaOfInterest(const vec2_t& center_pos, real_t inner_radius, real_t outer_radius, real_t resolution)
