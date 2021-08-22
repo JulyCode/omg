@@ -46,7 +46,7 @@ void IsotropicRemeshing::splitEdges(Mesh& mesh) const {
 		const vec2_t diff = p1 - p0;
 
         const vec2_t center = p0 + diff / 2;
-        const real_t max_length = max_size_factor * size.getValue(center);  // TODO: use minimum of p0 and p1?
+        const real_t max_length = max_size_factor * size.getValue(center);
 
         // check edge length
 		if (degreesToMeters(diff.norm()) > max_length) {  // TODO: use geoDistance?
@@ -71,17 +71,17 @@ void IsotropicRemeshing::collapseEdges(Mesh& mesh) const {
 		const real_t len = degreesToMeters((p1 - p0).norm());  // TODO: use geoDistance?
 
         const vec2_t center = (p0 + p1) / 2;
-        const real_t min_length = min_size_factor * size.getValue(center);  // TODO: use maximum of p0 and p1?
+        const real_t min_length = min_size_factor * size.getValue(center);
 
         // check edge length
 		if (len < min_length) {
 
-            auto heh = eh.h0();
+            auto heh = eh.h0();  // halfedge to collapse, controlls which vertex is deleted
 
             // test if the edge has a parallel neighbor edge on the boundary
             if (eh.is_boundary()) {
 
-                const auto boundary_heh = eh.h0().is_boundary() ? eh.h0() : eh.h1();
+                const auto& boundary_heh = eh.h0().is_boundary() ? eh.h0() : eh.h1();
 
                 if (isCollinear(mesh, boundary_heh, boundary_heh.prev().from())) {
                     heh = boundary_heh;
