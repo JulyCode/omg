@@ -2,6 +2,7 @@
 #include "remeshing.h"
 
 #include <iostream>
+#include <unordered_map>
 
 #include <util.h>
 
@@ -152,12 +153,16 @@ void IsotropicRemeshing::equalizeValences(Mesh& mesh) const {
         const int target_vl = computeOptimalValence(l, mesh);
         const int target_vr = computeOptimalValence(r, mesh);
 
-		// compute derivation from optimal valence
-		unsigned int e_old = std::abs(vs - target_vs) + std::abs(vt - target_vt);
-        e_old +=             std::abs(vl - target_vl) + std::abs(vr - target_vr);
+        // compute derivation from optimal valence
+        const int d_vs = vs - target_vs;
+        const int d_vt = vt - target_vt;
+        const int d_vl = vl - target_vl;
+        const int d_vr = vr - target_vr;
 
-		unsigned int e_new = std::abs(vs - target_vs - 1) + std::abs(vt - target_vt - 1);
-        e_new +=             std::abs(vl - target_vl + 1) + std::abs(vr - target_vr + 1);
+		unsigned int e_old = d_vs * d_vs + d_vt * d_vt + d_vl * d_vl + d_vr * d_vr;
+
+		unsigned int e_new = (d_vs - 1) * (d_vs - 1) + (d_vt - 1) * (d_vt - 1);
+        e_new +=             (d_vl + 1) * (d_vl + 1) + (d_vr + 1) * (d_vr + 1);
 
 		if (e_new < e_old && mesh.is_flip_ok(eh)) {
 

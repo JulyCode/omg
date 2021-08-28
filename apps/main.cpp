@@ -9,6 +9,7 @@
 #include <size_function/reference_size.h>
 #include <boundary/boundary.h>
 #include <mesh/remeshing.h>
+#include <analysis/mesh_quality.h>
 
 int main() {
 
@@ -58,4 +59,7 @@ int main() {
     std::cout << "triangles: " << mesh.n_faces() << std::endl;
 
     omg::io::writeOff("../../apps/medsea_remesh.off", mesh);
+    omg::io::writeLegacyVTK("../../apps/medsea_remesh.vtk", mesh);
+
+    omg::analysis::printValences(mesh);
 }
