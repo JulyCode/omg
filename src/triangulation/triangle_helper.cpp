@@ -32,7 +32,6 @@ TriangleIn<io_t>::TriangleIn(const Boundary& boundary) {
     polys.push_back(boundary.getOuter());
     omg::LineGraph outline = LineGraph::combinePolygons(polys);
 
-    io::writeLegacyVTK("../../apps/complete.vtk", outline);  // TODO: remove
     restrictToInt(outline);
 
     const std::vector<vec2_t>& points = outline.getPoints();

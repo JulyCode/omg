@@ -8,7 +8,6 @@ namespace omg {
 class TriangleTriangulator : public Triangulator {
 public:
     TriangleTriangulator();
-    ~TriangleTriangulator();
 
     void generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh) override;
 

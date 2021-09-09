@@ -77,6 +77,7 @@ public:
 
     // invalidates all handles!
     void garbageCollect();
+    bool hasGarbage() const;
 
     AxisAlignedBoundingBox computeBoundingBox() const;
     real_t computeArea() const;

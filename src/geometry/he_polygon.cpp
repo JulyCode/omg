@@ -162,6 +162,10 @@ void HEPolygon::garbageCollect() {
     deleted.clear();
 }
 
+bool HEPolygon::hasGarbage() const {
+    return !deleted.empty();
+}
+
 AxisAlignedBoundingBox HEPolygon::computeBoundingBox() const {
     if (points.size() == 0) {
         throw std::runtime_error("empty polygon has no bounding box");

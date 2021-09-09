@@ -18,6 +18,8 @@ if(OpenMP_CXX_FOUND)
     target_link_libraries(OMG PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
+target_link_libraries(OMG PRIVATE jigsaw-lib)
+
 target_include_directories(OMG PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(OMG PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../external")
 

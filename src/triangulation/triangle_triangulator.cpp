@@ -13,8 +13,6 @@ TriangleTriangulator::TriangleTriangulator() {
     jrs::set_triunsuitable_callback(triunsuitable);
 }
 
-TriangleTriangulator::~TriangleTriangulator() {}
-
 void TriangleTriangulator::generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh) {
     size_function = &size;
 
