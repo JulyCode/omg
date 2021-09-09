@@ -6,6 +6,7 @@
 #include <io/vtk_writer.h>
 #include <io/nc_reader.h>
 #include <triangulation/triangle_triangulator.h>
+#include <triangulation/jigsaw_triangulator.h>
 #include <size_function/reference_size.h>
 #include <boundary/boundary.h>
 #include <mesh/remeshing.h>
@@ -41,7 +42,8 @@ int main() {
     // return 0;
 
     omg::Mesh mesh;
-    omg::TriangleTriangulator tri;
+    //omg::TriangleTriangulator tri;
+    omg::JigsawTriangulator tri;
     tri.generateMesh(coast, sf, mesh);
 
     std::cout << "output mesh:" << std::endl;
@@ -50,6 +52,10 @@ int main() {
 
     omg::io::writeOff("../../apps/medsea.off", mesh);
     omg::io::writeLegacyVTK("../../apps/mesh.vtk", mesh);
+    return 0;
+
+    omg::analysis::QualityStats q = omg::analysis::computeQualityStats(mesh);
+    std::cout << q.min << ", " << q.max << ", " << q.avg << std::endl;
 
     omg::IsotropicRemeshing ir(sf);
     ir.remesh(mesh);
@@ -62,4 +68,7 @@ int main() {
     omg::io::writeLegacyVTK("../../apps/medsea_remesh.vtk", mesh);
 
     omg::analysis::printValences(mesh);
+
+    q = omg::analysis::computeQualityStats(mesh);
+    std::cout << q.min << ", " << q.max << ", " << q.avg << std::endl;
 }
