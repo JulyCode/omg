@@ -6,7 +6,7 @@
 namespace omg {
 
 SizeFunction::SizeFunction(const AxisAlignedBoundingBox& aabb, const size2_t& grid_size)
-    : ScalarField(aabb, grid_size) {}
+    : ScalarField(aabb, grid_size), max(0) {}
 
 SizeFunction::~SizeFunction() {}
 
