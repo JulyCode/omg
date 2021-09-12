@@ -65,16 +65,6 @@ Boundary::Boundary(const BathymetryData& data, const LineGraph& poly, const Size
     }
 
     std::cout << outer.numVertices() << " vertices" << std::endl;
-
-    omg::simplifyPolygon(outer, size);
-    if (outer.isDegenerated()) {
-        throw std::runtime_error("outer boundary is degenerated");
-    }
-    outer.garbageCollect();
-
-    std::cout << outer.numVertices() << " vertices" << std::endl;
-    io::writeLegacyVTK("../../apps/outer.vtk", LineGraph(outer));
-
     std::cout << cycles.size() << " cycles" << std::endl;
 
     // move the islands to holes
@@ -88,25 +78,50 @@ Boundary::Boundary(const BathymetryData& data, const LineGraph& poly, const Size
 
         if (!enclosesWater(c) && outer.pointInPolygon(start_point)) {
 
-            omg::simplifyPolygon(c, size);
-            if (!c.isDegenerated()) {
-                c.garbageCollect();
-
-                const std::lock_guard lock(hole_mutex);
-                holes.push_back(std::move(c));
-            }
+            const std::lock_guard lock(hole_mutex);
+            holes.push_back(std::move(c));
         }
     }
     std::cout << holes.size() << " holes" << std::endl;
 
+    // io::writeLegacyVTK("../../apps/complete.vtk", complete);
+}
+
+bool Boundary::hasIntersections() const {
     std::vector<HEPolygon> polys = holes;
     polys.push_back(outer);
+
     omg::LineGraph complete = LineGraph::combinePolygons(polys);
-    if (complete.hasSelfIntersection()) {
-        std::cout << "boundary intersection" << std::endl;
+
+    return complete.hasSelfIntersection();
+}
+
+void Boundary::simplify() {
+    // simplify outer
+    omg::simplifyPolygon(outer, size);
+    if (outer.isDegenerated()) {
+        throw std::runtime_error("outer boundary is degenerated");
+    }
+    outer.garbageCollect();
+
+    std::cout << outer.numVertices() << " vertices" << std::endl;
+
+    // simplify holes
+    for (auto it = holes.begin(); it != holes.end();) {
+
+        HEPolygon& c = *it;
+        omg::simplifyPolygon(c, size);
+
+        if (!c.isDegenerated()) {
+            c.garbageCollect();
+
+            ++it;
+        } else {
+            it = holes.erase(it);  // remove if degenerated
+        }
     }
 
-    // io::writeLegacyVTK("../../apps/complete.vtk", complete);
+    std::cout << holes.size() << " holes" << std::endl;
 }
 
 void Boundary::convertToRegion(const LineGraph& poly) {

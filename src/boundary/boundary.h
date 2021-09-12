@@ -16,6 +16,10 @@ public:
     inline const HEPolygon& getOuter() const { return outer; }
     inline const std::vector<HEPolygon>& getHoles() const { return holes; }
 
+    bool hasIntersections() const;
+
+    void simplify();
+
 private:
     HEPolygon outer;
     std::vector<HEPolygon> holes;
