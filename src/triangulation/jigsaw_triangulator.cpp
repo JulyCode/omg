@@ -13,50 +13,63 @@ JigsawTriangulator::JigsawTriangulator() {}
 
 using VertexBuffer = std::vector<jigsaw_VERT2_t>;
 using EdgeBuffer = std::vector<jigsaw_EDGE2_t>;
+using BoundBuffer = std::vector<jigsaw_BOUND_t>;
 using CoordBuffer = std::vector<::real_t>;
 using ValueBuffer = std::vector<::fp32_t>;
 
-static void convertBoundary(const Boundary& boundary, jigsaw_msh_t& outline,
-                            VertexBuffer& vertices, EdgeBuffer& edges) {
+static void convertBoundary(const Boundary& boundary, jigsaw_msh_t& coast,
+                            VertexBuffer& vertices, EdgeBuffer& edges, BoundBuffer& bounds) {
 
     const HEPolygon& outer = boundary.getOuter();
-    if (outer.hasGarbage()) {
-        throw std::runtime_error("boundary has to be garbage collected");
-    }
 
-    if (outer.numVertices() > static_cast<std::size_t>(std::numeric_limits<indx_t>::max())) {
+    std::vector<HEPolygon> polys = boundary.getHoles();
+    polys.push_back(outer);
+    omg::LineGraph outline = LineGraph::combinePolygons(polys);
+
+    if (outline.numVertices() > static_cast<std::size_t>(std::numeric_limits<indx_t>::max())) {
         throw std::runtime_error("Too many vertices in outline");
     }
-    if (outer.numHalfEdges() > static_cast<std::size_t>(std::numeric_limits<indx_t>::max())) {
+    if (outline.numEdges() > static_cast<std::size_t>(std::numeric_limits<indx_t>::max())) {
         throw std::runtime_error("Too many edges in outline");
     }
 
     // copy vertices
-    vertices.reserve(outer.numVertices());
+    vertices.reserve(outline.numVertices());
 
-    for (const HEPolygon::VertexHandle vh : outer.vertices()) {
-
-        const vec2_t& p = outer.point(vh);
+    for (const vec2_t& p : outline.getPoints()) {
         vertices.push_back({{p[0], p[1]}, 0});
     }
 
     // copy edges
-    edges.reserve(outer.numHalfEdges());
+    edges.reserve(outline.numEdges());
 
-    for (const HEPolygon::HalfEdgeHandle heh : outer.halfEdges()) {
+    for (const LineGraph::Edge& e : outline.getEdges()) {
 
-        const indx_t v0 = outer.startVertex(heh);
-        const indx_t v1 = outer.endVertex(heh);
+        const indx_t v0 = e.first;
+        const indx_t v1 = e.second;
         edges.push_back({{v0, v1}, 0});
     }
 
-    outline._flags = JIGSAW_EUCLIDEAN_MESH;
+    // create bounds
+    bounds.reserve(outer.numHalfEdges());
 
-    outline._vert2._data = vertices.data();
-    outline._vert2._size = vertices.size();
+    for (std::size_t i = 0; i < outer.numHalfEdges(); i++) {
 
-    outline._edge2._data = edges.data();
-    outline._edge2._size = edges.size();
+        indx_t idx = outline.numEdges() - i - 1;
+        bounds.push_back({0, idx, JIGSAW_EDGE2_TAG});
+    }
+
+    coast._flags = JIGSAW_EUCLIDEAN_MESH;
+
+    coast._vert2._data = vertices.data();
+    coast._vert2._size = vertices.size();
+
+    coast._edge2._data = edges.data();
+    coast._edge2._size = edges.size();
+
+    // TODO: is this needed?
+    // coast._bound._data = bounds.data();
+    // coast._bound._size = bounds.size();
 }
 
 static void convertSize(const SizeFunction& size, jigsaw_msh_t& h_fun,
@@ -132,18 +145,19 @@ void JigsawTriangulator::generateMesh(const Boundary& boundary, const SizeFuncti
     jig._verbosity = 1;
     jig._mesh_dims = 2;
 
-    jigsaw_msh_t outline, mesh, h_fun;
-    jigsaw_init_msh_t(&outline);
+    jigsaw_msh_t coast, mesh, h_fun;
+    jigsaw_init_msh_t(&coast);
     jigsaw_init_msh_t(&mesh);
     jigsaw_init_msh_t(&h_fun);
 
     // buffers need same lifetime as mesh
     VertexBuffer vertices;
     EdgeBuffer edges;
+    BoundBuffer bounds;
     CoordBuffer x_buf, y_buf;
     ValueBuffer value;
 
-    convertBoundary(boundary, outline, vertices, edges);
+    convertBoundary(boundary, coast, vertices, edges, bounds);
 
     // size function
     convertSize(size, h_fun, x_buf, y_buf, value);
@@ -151,7 +165,7 @@ void JigsawTriangulator::generateMesh(const Boundary& boundary, const SizeFuncti
     jig._hfun_hmin = 0;
     jig._hfun_scal = JIGSAW_HFUN_ABSOLUTE;
 
-    int retv = jigsaw(&jig, &outline, NULL, &h_fun, &mesh);
+    int retv = jigsaw(&jig, &coast, NULL, &h_fun, &mesh);
 
     if (retv != 0) {
         throw std::runtime_error("jigsaw error " + std::to_string(retv));
