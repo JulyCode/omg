@@ -138,6 +138,7 @@ static void convertToMesh(const jigsaw_msh_t& jig_mesh, Mesh& out_mesh) {
 }
 
 void JigsawTriangulator::generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh) {
+    ScopeTimer timer("Jigsaw generate mesh");
 
     jigsaw_jig_t jig;
     jigsaw_init_jig_t(&jig);

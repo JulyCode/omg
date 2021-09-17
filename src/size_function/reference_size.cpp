@@ -36,7 +36,7 @@ ReferenceSize::ReferenceSize(const BathymetryData& data, const Resolution& resol
 
     max = resolution.coarsest;
 
-    auto begin = std::chrono::high_resolution_clock::now();
+    ScopeTimer timer("Reference size");
 
     #pragma omp parallel for
     for (std::size_t i = 0; i < grid_size[0]; i++) {
@@ -46,9 +46,6 @@ ReferenceSize::ReferenceSize(const BathymetryData& data, const Resolution& resol
             grid(idx) = calculateSize(idx, data, resolution);
         }
     }
-
-    auto end = std::chrono::high_resolution_clock::now();
-	std::cout << "Took: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << std::endl;
 }
 
 real_t ReferenceSize::calculateSize(const size2_t& idx, const BathymetryData& data, const Resolution& res) const {

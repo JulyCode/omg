@@ -2,6 +2,9 @@
 
 #include <types.h>
 
+#include <chrono>
+#include <iostream>
+
 namespace omg {
 
 constexpr real_t EARTH_RADIUS = 6'371'009;
@@ -42,5 +45,23 @@ inline real_t geoDistance(const vec2_t& p1, const vec2_t& p2) {
 
     return EARTH_RADIUS * std::sqrt(d_lat * d_lat + lon * lon);
 }
+
+
+class ScopeTimer {
+    using TimePoint = std::chrono::_V2::system_clock::time_point;
+public:
+    ScopeTimer() : ScopeTimer("Duration") {}
+    explicit ScopeTimer(const std::string& msg) : start(std::chrono::high_resolution_clock::now()), msg(msg) {}
+
+    ~ScopeTimer() {
+        TimePoint end = std::chrono::high_resolution_clock::now();
+        int64_t duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+	    std::cout << msg << ": " << duration << " ms" << std::endl;
+    }
+
+private:
+    const TimePoint start;
+    const std::string msg;
+};
 
 }

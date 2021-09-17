@@ -1,7 +1,8 @@
 
 #include "marching_quads.h"
 
-#include <chrono>
+#include <util.h>
+
 #include <iostream>
 #include <shared_mutex>
 
@@ -29,7 +30,7 @@ static vec2_t linearInterpolation(const vec2_t& p1, const vec2_t& p2, real_t v1,
 }
 
 LineGraph marchingQuads(const BathymetryData& data, real_t iso_value) {
-    auto begin = std::chrono::high_resolution_clock::now();
+    ScopeTimer timer("Marching quads");
 
     const size2_t& grid_size = data.getGridSize();
 
@@ -139,9 +140,6 @@ LineGraph marchingQuads(const BathymetryData& data, real_t iso_value) {
             }
         }
     }
-
-    auto end = std::chrono::high_resolution_clock::now();
-	std::cout << "Took: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << std::endl;
 
     return poly;
 }

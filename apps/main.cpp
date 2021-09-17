@@ -11,8 +11,10 @@
 #include <boundary/boundary.h>
 #include <mesh/remeshing.h>
 #include <analysis/mesh_quality.h>
+#include <util.h>
 
 int main() {
+    omg::ScopeTimer timer("Total");
 
     omg::AxisAlignedBoundingBox aabb;
     aabb.min = omg::vec2_t(-20.99583243, 10.99583245);
@@ -29,11 +31,9 @@ int main() {
     resolution.coastal = 5000;
     resolution.aois.push_back({omg::vec2_t(25.14, 35.335), 0.2, 0.5, 1000});  // Heraklion
 
-    std::cout << "calculating size..." << std::endl;
     omg::ReferenceSize sf(topo, resolution);
-    std::cout << "calculating size done" << std::endl;
 
-    omg::io::writeLegacyVTK("../../apps/size_fkt.vtk", sf, true);
+    // omg::io::writeLegacyVTK("../../apps/size_fkt.vtk", sf, true);
 
     omg::Boundary coast(topo, poly, sf);
     coast.simplify();
