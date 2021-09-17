@@ -28,7 +28,7 @@ template<typename io_t>
 TriangleIn<io_t>::TriangleIn(const Boundary& boundary) {
 
     // combine outer and holes
-    std::vector<HEPolygon> polys = boundary.getHoles();
+    std::vector<HEPolygon> polys = boundary.getIslands();
     polys.push_back(boundary.getOuter());
     omg::LineGraph outline = LineGraph::combinePolygons(polys);
 
@@ -60,7 +60,7 @@ TriangleIn<io_t>::TriangleIn(const Boundary& boundary) {
     io.segmentmarkerlist = nullptr;
 
     // create holes
-    const std::vector<HEPolygon>& holes = boundary.getHoles();
+    const std::vector<HEPolygon>& holes = boundary.getIslands();
     io.numberofholes = holes.size();
     io.holelist = new real_t[io.numberofholes * 2];
     for (int i = 0; i < io.numberofholes; i++) {

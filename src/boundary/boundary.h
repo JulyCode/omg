@@ -1,6 +1,5 @@
 #pragma once
 
-#include <list>
 #include <unordered_map>
 
 #include <topology/scalar_field.h>
@@ -11,20 +10,20 @@ namespace omg {
 
 class Boundary {
 public:
-    Boundary(const BathymetryData& data, const LineGraph& poly, const SizeFunction& size, real_t height = 0);
+    Boundary(const BathymetryData& data, const LineGraph& poly, const SizeFunction& size);
+
+    void generate(real_t height = 0, bool simplify = true);
 
     inline const HEPolygon& getOuter() const { return outer; }
-    inline const std::vector<HEPolygon>& getHoles() const { return holes; }
+    inline const std::vector<HEPolygon>& getIslands() const { return islands; }
 
     bool hasIntersections() const;
 
-    void simplify();
-
 private:
     HEPolygon outer;
-    std::vector<HEPolygon> holes;
+    std::vector<HEPolygon> islands;
 
-    const real_t height;
+    real_t height;
     const BathymetryData& data;
     HEPolygon region;
     const SizeFunction& size;
@@ -38,12 +37,9 @@ private:
     // intersections per region edge
     using IntersectionList = std::unordered_map<HEPolygon::HalfEdgeHandle, std::vector<Intersection>>;
 
-    using AdjacencyList = std::vector<std::list<EHandle>>;  // incident edges per vertex
-
+    using AdjacencyList = LineGraph::AdjacencyList;
 
     void convertToRegion(const LineGraph& poly);
-
-    AdjacencyList getAdjacency(const LineGraph& graph) const;
 
     void computeIntersections(const LineGraph& coast, IntersectionList& intersections) const;
 
@@ -59,6 +55,8 @@ private:
     bool enclosesWater(const HEPolygon& poly) const;
 
     std::size_t findOuterPolygon(const std::vector<HEPolygon>& cycles);
+
+    void findIslands(std::vector<HEPolygon>& cycles, bool simplify);
 };
 
 }

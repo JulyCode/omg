@@ -1,16 +1,21 @@
 #pragma once
 
 #include <vector>
+#include <list>
 
 #include <geometry/he_polygon.h>
 
 namespace omg {
+
+class LineGraphAdjacencyList;
 
 class LineGraph {
 public:
     using VertexHandle = std::size_t;
     using EdgeHandle = std::size_t;
     using Edge = std::pair<VertexHandle, VertexHandle>;  // indices of incident vertices
+
+    using AdjacencyList = LineGraphAdjacencyList;
 
 public:
     LineGraph() = default;
@@ -33,11 +38,36 @@ public:
 
     AxisAlignedBoundingBox computeBoundingBox() const;
 
+    AdjacencyList computeAdjacency() const;
+
+    // invalidates all handles!
+    void removeDegeneratedGeometry();
+
     bool hasSelfIntersection() const;
 
 private:
     std::vector<vec2_t> points;
     std::vector<Edge> edges;
+};
+
+
+class LineGraphAdjacencyList {
+public:
+    using EdgeHandle = LineGraph::EdgeHandle;
+    using VertexHandle = LineGraph::VertexHandle;
+
+    explicit LineGraphAdjacencyList(const LineGraph& lg);
+
+    const std::list<EdgeHandle>& get(VertexHandle vh) const { return edges[vh]; }
+    std::list<EdgeHandle>& get(VertexHandle vh) { return edges[vh]; }
+
+    EdgeHandle getPrev(EdgeHandle eh) const;
+    EdgeHandle getNext(EdgeHandle eh) const;
+
+    std::vector<std::list<EdgeHandle>> edges;  // incident edges per vertex
+
+private:
+    const LineGraph& lg;
 };
 
 }

@@ -22,7 +22,7 @@ static void convertBoundary(const Boundary& boundary, jigsaw_msh_t& coast,
 
     const HEPolygon& outer = boundary.getOuter();
 
-    std::vector<HEPolygon> polys = boundary.getHoles();
+    std::vector<HEPolygon> polys = boundary.getIslands();
     polys.push_back(outer);
     omg::LineGraph outline = LineGraph::combinePolygons(polys);
 

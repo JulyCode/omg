@@ -2,6 +2,7 @@
 #include "line_graph.h"
 
 #include <geometry/line_intersection.h>
+#include <util.h>
 
 namespace omg {
 
@@ -115,6 +116,10 @@ AxisAlignedBoundingBox LineGraph::computeBoundingBox() const {
     return aabb;
 }
 
+LineGraph::AdjacencyList LineGraph::computeAdjacency() const {
+    return AdjacencyList(*this);
+}
+
 bool LineGraph::hasSelfIntersection() const {  // TODO: improve performance
     for (const Edge& e1 : getEdges()) {
         const LineSegment l1 = {getPoint(e1.first), getPoint(e1.second)};
@@ -135,6 +140,39 @@ bool LineGraph::hasSelfIntersection() const {  // TODO: improve performance
         }
     }
     return false;
+}
+
+
+LineGraphAdjacencyList::LineGraphAdjacencyList(const LineGraph& lg)
+    : lg(lg) {
+
+    edges.resize(lg.numVertices());
+
+    for (EdgeHandle eh = 0; eh < lg.numEdges(); eh++) {
+
+        edges[lg.getEdge(eh).first].push_back(eh);
+        edges[lg.getEdge(eh).second].push_back(eh);
+    }
+}
+
+LineGraphAdjacencyList::EdgeHandle LineGraphAdjacencyList::getPrev(EdgeHandle eh) const {
+    const std::list<EdgeHandle>& adj = edges[lg.getEdge(eh).first];
+
+    const EdgeHandle e = adj.front();
+    if (e == eh) {
+        return adj.back();
+    }
+    return e;
+}
+
+LineGraphAdjacencyList::EdgeHandle LineGraphAdjacencyList::getNext(EdgeHandle eh) const {
+    const std::list<EdgeHandle>& adj = edges[lg.getEdge(eh).second];
+
+    const EdgeHandle e = adj.front();
+    if (e == eh) {
+        return adj.back();
+    }
+    return e;
 }
 
 }

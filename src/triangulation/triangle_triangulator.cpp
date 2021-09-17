@@ -3,6 +3,7 @@
 
 #include <Triangle/jrs_triangle.h>
 #include <triangulation/triangle_helper.h>
+#include <util.h>
 
 namespace omg {
 
@@ -15,6 +16,8 @@ TriangleTriangulator::TriangleTriangulator() {
 
 void TriangleTriangulator::generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh) {
     size_function = &size;
+
+    ScopeTimer timer("Triangle generate mesh");
 
     TriangleIn<jrs::triangulateio> in(boundary);
     TriangleOut<jrs::triangulateio> out;

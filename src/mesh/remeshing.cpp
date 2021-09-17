@@ -12,6 +12,7 @@ IsotropicRemeshing::IsotropicRemeshing(const SizeFunction& size, real_t min_size
     : size(size), min_size_factor(min_size_factor), max_size_factor(max_size_factor) {}
 
 void IsotropicRemeshing::remesh(Mesh& mesh, unsigned int iterations) const {
+    ScopeTimer timer("Isotropic remeshing");
 
     mesh.request_vertex_status();
 	mesh.request_edge_status();
