@@ -64,4 +64,38 @@ private:
     const std::string msg;
 };
 
+template <typename Iter, typename IndexIter>
+Iter removeByIndices(Iter first, Iter last, IndexIter ifirst, IndexIter ilast) {
+    // by papagaga from https://codereview.stackexchange.com/questions/206686/removing-by-indices-several-elements-from-a-vector
+
+    if (ifirst == ilast || first == last) {
+        return last;
+    }
+
+    if (!std::is_sorted(ifirst, ilast)) {
+        std::sort(ifirst, ilast);
+    }
+
+    Iter out = std::next(first, *ifirst);
+    Iter in  = std::next(out);
+
+    while (++ifirst != ilast) {
+
+        if (*std::prev(ifirst) + 1 == *ifirst) {
+            ++in;
+            continue;
+        }
+
+        out = std::move(in, std::next(first, *ifirst), out);
+        in  = std::next(first, *ifirst + 1);
+    }
+
+    return std::move(in, last, out);
+}
+
+template <typename T, typename IndexIter>
+void eraseByIndices(std::vector<T>& values, IndexIter ifirst, IndexIter ilast) {
+    values.erase(removeByIndices(values.begin(), values.end(), ifirst, ilast), values.end());
+}
+
 }

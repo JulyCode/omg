@@ -36,7 +36,7 @@ int main() {
     // omg::io::writeLegacyVTK("../../apps/size_fkt.vtk", sf, true);
 
     omg::Boundary coast(topo, poly, sf);
-    coast.simplify();
+    coast.generate();
 
     if (coast.hasIntersections()) {
         std::cout << "boundary intersection" << std::endl;
