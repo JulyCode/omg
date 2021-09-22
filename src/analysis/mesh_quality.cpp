@@ -4,10 +4,12 @@
 #include <iostream>
 #include <math.h>
 
+#include <mesh/remeshing.h>
+
 namespace omg {
 namespace analysis {
 
-std::vector<real_t> computeQuality(const Mesh& mesh) {
+std::vector<real_t> computeRadiusRatio(const Mesh& mesh) {
     // computes 2 * incircle radius / circumcircle redius
     std::vector<real_t> quality;
 
@@ -53,29 +55,21 @@ std::vector<real_t> computeQuality(const Mesh& mesh) {
     return quality;
 }
 
-QualityStats computeQualityStats(const Mesh& mesh) {
-    const std::vector<real_t> quality = computeQuality(mesh);
-    if (quality.size() == 0) {
-        throw std::runtime_error("empty quality list");
-    }
-
-    QualityStats stats = {quality[0], quality[0], 0};
-
-    for (const real_t q : quality) {
-        stats.min = std::min(stats.min, q);
-        stats.max = std::max(stats.max, q);
-        stats.avg += q;
-    }
-    stats.avg /= quality.size();
-
-    return stats;
-}
-
-std::unordered_map<std::size_t, std::size_t> countValences(const Mesh& mesh) {
-    std::unordered_map<std::size_t, std::size_t> histogram;
+std::vector<std::size_t> countValences(const Mesh& mesh) {
+    std::vector<std::size_t> valences;
 
     for (const auto& vh : mesh.vertices()) {
-        const int valence = mesh.valence(vh);
+        valences.push_back(mesh.valence(vh));
+    }
+
+    return valences;
+}
+
+std::unordered_map<std::size_t, std::size_t> groupValences(const Mesh& mesh) {
+    std::unordered_map<std::size_t, std::size_t> histogram;
+
+    for (std::size_t valence : countValences(mesh)) {
+
         if (histogram.find(valence) == histogram.end()) {
             histogram[valence] = 0;
         }
@@ -86,7 +80,7 @@ std::unordered_map<std::size_t, std::size_t> countValences(const Mesh& mesh) {
 }
 
 void printValences(const Mesh& mesh) {
-    const auto& valences = omg::analysis::countValences(mesh);
+    const auto& valences = omg::analysis::groupValences(mesh);
 
     std::vector<std::pair<std::size_t, std::size_t>> sorted;
     for (const auto& p : valences) {
@@ -98,6 +92,69 @@ void printValences(const Mesh& mesh) {
     for (const auto& p : sorted) {
         std::cout << "valence " << p.first << ": " << p.second << std::endl;
     }
+}
+
+std::vector<int> computeValenceDeviation(const Mesh& mesh) {
+    std::vector<int> deviation;
+
+    for (const auto& vh : mesh.vertices()) {
+        const int valence = mesh.valence(vh);
+
+        const int optimal = IsotropicRemeshing::computeOptimalValence(vh, mesh);
+
+        deviation.push_back(valence - optimal);
+    }
+
+    return deviation;
+}
+
+std::vector<real_t> computeEdgeLength(const Mesh& mesh) {
+    std::vector<real_t> length;
+
+    for (const auto& heh : mesh.halfedges()) {
+
+        length.push_back((mesh.point(heh.from()) - mesh.point(heh.to())).norm());
+    }
+
+    return length;
+}
+
+std::vector<real_t> computeRelativeEdgeLength(const Mesh& mesh, const SizeFunction& size, std::size_t samples) {
+    std::vector<real_t> rel_length;
+
+    if (samples == 0) {
+        throw std::runtime_error("zero samples");
+    }
+
+    for (const auto& heh : mesh.halfedges()) {
+
+        const vec2_t& p0 = toVec2(mesh.point(heh.from()));
+        const vec2_t& p1 = toVec2(mesh.point(heh.to()));
+
+        const real_t length = (p1 - p0).norm();
+
+        real_t target_size = 0;
+
+        if (samples > 1) {
+            // average size function samples over edge
+            for (std::size_t i = 0; i < samples; i++) {
+
+                const real_t lambda = i / (samples - 1);
+                const vec2_t p = lambda * p0 + (1 - lambda) * p1;
+
+                target_size += size.getValue(p);
+            }
+
+            target_size /= samples;
+        } else {
+            // use center
+            target_size = size.getValue((p0 + p1) / 2);
+        }
+
+        rel_length.push_back(length / target_size);
+    }
+
+    return rel_length;
 }
 
 }

@@ -174,7 +174,7 @@ void IsotropicRemeshing::equalizeValences(Mesh& mesh) const {
     std::cout << cnt << " flips" << std::endl;
 }
 
-int IsotropicRemeshing::computeOptimalValence(const OpenMesh::SmartVertexHandle& vh, const Mesh& mesh) const {
+int IsotropicRemeshing::computeOptimalValence(const OpenMesh::SmartVertexHandle& vh, const Mesh& mesh) {
     if (!vh.is_boundary()) {
         return 6;
     }

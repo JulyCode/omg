@@ -49,8 +49,8 @@ int main() {
     // return 0;
 
     omg::Mesh mesh;
-    //omg::TriangleTriangulator tri;
-    omg::JigsawTriangulator tri;
+    omg::TriangleTriangulator tri;
+    //omg::JigsawTriangulator tri;
     tri.generateMesh(coast, sf, mesh);
 
     std::cout << "output mesh:" << std::endl;
@@ -59,10 +59,20 @@ int main() {
 
     omg::io::writeOff("../../apps/medsea.off", mesh);
     omg::io::writeLegacyVTK("../../apps/mesh.vtk", mesh);
-    return 0;
 
-    omg::analysis::QualityStats q = omg::analysis::computeQualityStats(mesh);
-    std::cout << q.min << ", " << q.max << ", " << q.avg << std::endl;
+    omg::analysis::printValences(mesh);
+
+    std::vector<int> valence_dev = omg::analysis::computeValenceDeviation(mesh);
+    omg::analysis::Aggregates<omg::real_t> vd(valence_dev.begin(), valence_dev.end());
+    std::cout << vd.min << ", " << vd.max << ", " << vd.avg << std::endl;
+
+    std::vector<omg::real_t> radius_ratio = omg::analysis::computeRadiusRatio(mesh);
+    omg::analysis::Aggregates<omg::real_t> quality(radius_ratio.begin(), radius_ratio.end());
+    std::cout << quality.min << ", " << quality.max << ", " << quality.avg << std::endl;
+
+    std::vector<omg::real_t> edge_length = omg::analysis::computeRelativeEdgeLength(mesh, sf, 1);
+    omg::analysis::Aggregates<omg::real_t> el(edge_length.begin(), edge_length.end());
+    std::cout << el.min << ", " << el.max << ", " << el.avg << std::endl;
 
     omg::IsotropicRemeshing ir(sf);
     ir.remesh(mesh);
@@ -76,6 +86,15 @@ int main() {
 
     omg::analysis::printValences(mesh);
 
-    q = omg::analysis::computeQualityStats(mesh);
-    std::cout << q.min << ", " << q.max << ", " << q.avg << std::endl;
+    valence_dev = omg::analysis::computeValenceDeviation(mesh);
+    vd = omg::analysis::Aggregates<omg::real_t>(valence_dev.begin(), valence_dev.end());
+    std::cout << vd.min << ", " << vd.max << ", " << vd.avg << std::endl;
+
+    radius_ratio = omg::analysis::computeRadiusRatio(mesh);
+    quality = omg::analysis::Aggregates<omg::real_t>(radius_ratio.begin(), radius_ratio.end());
+    std::cout << quality.min << ", " << quality.max << ", " << quality.avg << std::endl;
+
+    edge_length = omg::analysis::computeRelativeEdgeLength(mesh, sf, 1);
+    el = omg::analysis::Aggregates<omg::real_t>(edge_length.begin(), edge_length.end());
+    std::cout << el.min << ", " << el.max << ", " << el.avg << std::endl;
 }
