@@ -23,10 +23,7 @@ bool SizeFunction::isTriangleGood(const vec2_t& v0, const vec2_t& v1, const vec2
     const real_t length2 = (v1 - v2).sqrnorm();
     const real_t max_length = std::sqrt(std::max({length0, length1, length2}));
 
-    // convert from degrees to meters
-    const real_t actual_size = degreesToMeters(max_length);
-
-    return actual_size < min_size;  // TODO: allow slightly longer edges?
+    return max_length < min_size * 1.01;
 }
 
 }

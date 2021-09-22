@@ -95,7 +95,7 @@ static void convertSize(const SizeFunction& size, jigsaw_msh_t& h_fun,
     for (std::size_t x = 0; x < grid_size[0]; x++) {
         for (std::size_t y = 0; y < grid_size[1]; y++) {
 
-            value.push_back(metersToDegrees(size.grid(x, y)));  // TODO: save size in degrees?
+            value.push_back(size.grid(x, y));
         }
     }
 

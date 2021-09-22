@@ -80,7 +80,10 @@ real_t ReferenceSize::calculateSize(const size2_t& idx, const BathymetryData& da
         size = std::max(aoi.blendResolution(size, position), condition);  // why limit this?
     }
 
-    return size;
+    // convert from degrees to meters
+    const real_t actual_size = metersToDegrees(size);
+
+    return actual_size;
 }
 
 }
