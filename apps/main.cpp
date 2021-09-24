@@ -5,6 +5,7 @@
 #include <io/off_writer.h>
 #include <io/vtk_writer.h>
 #include <io/nc_reader.h>
+#include <io/csv_writer.h>
 #include <triangulation/triangle_triangulator.h>
 #include <triangulation/jigsaw_triangulator.h>
 #include <size_function/reference_size.h>
@@ -62,17 +63,22 @@ int main() {
 
     omg::analysis::printValences(mesh);
 
+    omg::io::CSVTable before;
+
     std::vector<int> valence_dev = omg::analysis::computeValenceDeviation(mesh);
     omg::analysis::Aggregates<omg::real_t> vd(valence_dev.begin(), valence_dev.end());
     std::cout << vd.min << ", " << vd.max << ", " << vd.avg << std::endl;
+    before.addColumn("Valence", valence_dev.begin(), valence_dev.end());
 
     std::vector<omg::real_t> radius_ratio = omg::analysis::computeRadiusRatio(mesh);
     omg::analysis::Aggregates<omg::real_t> quality(radius_ratio.begin(), radius_ratio.end());
     std::cout << quality.min << ", " << quality.max << ", " << quality.avg << std::endl;
+    before.addColumn("Radius ratio", radius_ratio.begin(), radius_ratio.end());
 
     std::vector<omg::real_t> edge_length = omg::analysis::computeRelativeEdgeLength(mesh, sf, 1);
     omg::analysis::Aggregates<omg::real_t> el(edge_length.begin(), edge_length.end());
     std::cout << el.min << ", " << el.max << ", " << el.avg << std::endl;
+    before.addColumn("Edge length", edge_length.begin(), edge_length.end());
 
     omg::IsotropicRemeshing ir(sf);
     ir.remesh(mesh);
@@ -97,4 +103,6 @@ int main() {
     edge_length = omg::analysis::computeRelativeEdgeLength(mesh, sf, 1);
     el = omg::analysis::Aggregates<omg::real_t>(edge_length.begin(), edge_length.end());
     std::cout << el.min << ", " << el.max << ", " << el.avg << std::endl;
+
+    before.write("../../apps/stats_before.csv");
 }
