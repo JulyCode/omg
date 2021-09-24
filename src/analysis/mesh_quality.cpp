@@ -126,10 +126,10 @@ std::vector<real_t> computeRelativeEdgeLength(const Mesh& mesh, const SizeFuncti
         throw std::runtime_error("zero samples");
     }
 
-    for (const auto& heh : mesh.halfedges()) {
+    for (const auto& eh : mesh.edges()) {
 
-        const vec2_t& p0 = toVec2(mesh.point(heh.from()));
-        const vec2_t& p1 = toVec2(mesh.point(heh.to()));
+        const vec2_t& p0 = toVec2(mesh.point(eh.v0()));
+        const vec2_t& p1 = toVec2(mesh.point(eh.v1()));
 
         const real_t length = (p1 - p0).norm();
 
