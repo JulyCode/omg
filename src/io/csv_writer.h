@@ -108,15 +108,10 @@ public:
             throw std::runtime_error("Error writing to file: " + filename);
         }
 
-        for (const auto& row : data) {
-            for (std::size_t i = 0; i < row.size(); i++) {
-                file << row[i];
+        writeRow(file, columns);
 
-                if (i != row.size() - 1) {
-                    file << delim;
-                }
-            }
-            file << "\n";
+        for (const auto& row : data) {
+            writeRow(file, row);
         }
 
         file.close();
@@ -129,6 +124,17 @@ private:
 
     std::vector<std::string> columns;
     std::vector<std::vector<std::string>> data;  // row-major
+
+    void writeRow(std::ofstream& file, const std::vector<std::string>& row) const {
+        for (std::size_t i = 0; i < row.size(); i++) {
+            file << row[i];
+
+            if (i != row.size() - 1) {
+                file << delim;
+            }
+        }
+        file << "\n";
+    }
 };
 
 
