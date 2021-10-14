@@ -34,7 +34,7 @@ real_t AreaOfInterest::blendResolution(real_t current_resolution, const vec2_t& 
 ReferenceSize::ReferenceSize(const BathymetryData& data, const Resolution& resolution)
     : SizeFunction(data.getBoundingBox(), data.getGridSize()) {
 
-    max = resolution.coarsest;
+    max = metersToDegrees(resolution.coarsest);
 
     ScopeTimer timer("Reference size");
 
