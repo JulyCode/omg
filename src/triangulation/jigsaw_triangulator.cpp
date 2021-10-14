@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include <util.h>
+#include <size_function/jigsaw_size.h>
 
 #include <jigsaw/inc/lib_jigsaw.h>
 
@@ -14,8 +15,6 @@ JigsawTriangulator::JigsawTriangulator() {}
 using VertexBuffer = std::vector<jigsaw_VERT2_t>;
 using EdgeBuffer = std::vector<jigsaw_EDGE2_t>;
 using BoundBuffer = std::vector<jigsaw_BOUND_t>;
-using CoordBuffer = std::vector<::real_t>;
-using ValueBuffer = std::vector<::fp32_t>;
 
 static void convertBoundary(const Boundary& boundary, jigsaw_msh_t& coast,
                             VertexBuffer& vertices, EdgeBuffer& edges, BoundBuffer& bounds) {
@@ -72,48 +71,9 @@ static void convertBoundary(const Boundary& boundary, jigsaw_msh_t& coast,
     // coast._bound._size = bounds.size();
 }
 
-static void convertSize(const SizeFunction& size, jigsaw_msh_t& h_fun,
-                        CoordBuffer& x_buf, CoordBuffer& y_buf, ValueBuffer& value) {
-
-    const size2_t& grid_size = size.getGridSize();
-
-    x_buf.reserve(grid_size[0]);
-    y_buf.reserve(grid_size[1]);
-    value.reserve(grid_size[0] * grid_size[1]);
-
-    for (std::size_t x = 0; x < grid_size[0]; x++) {
-
-        const vec2_t p = size.getPoint({x, 0});
-        x_buf.push_back(p[0]);
-    }
-    for (std::size_t y = 0; y < grid_size[1]; y++) {
-
-        const vec2_t p = size.getPoint({0, y});
-        y_buf.push_back(p[1]);
-    }
-
-    for (std::size_t x = 0; x < grid_size[0]; x++) {
-        for (std::size_t y = 0; y < grid_size[1]; y++) {
-
-            value.push_back(size.grid(x, y));
-        }
-    }
-
-    h_fun._flags = JIGSAW_EUCLIDEAN_GRID;
-
-    h_fun._xgrid._data = x_buf.data();
-    h_fun._xgrid._size = x_buf.size();
-
-    h_fun._ygrid._data = y_buf.data();
-    h_fun._ygrid._size = y_buf.size();
-
-    h_fun._value._data = value.data();
-    h_fun._value._size = value.size();
-}
-
 static void convertToMesh(const jigsaw_msh_t& jig_mesh, Mesh& out_mesh) {
     // add points
-    std::vector<Mesh::VertexHandle> vertex_handles;
+    std::vector<OpenMesh::SmartVertexHandle> vertex_handles;
     vertex_handles.reserve(jig_mesh._vert2._size);
 
     for (std::size_t i = 0; i < jig_mesh._vert2._size; i++) {
@@ -122,6 +82,8 @@ static void convertToMesh(const jigsaw_msh_t& jig_mesh, Mesh& out_mesh) {
 
         vertex_handles.push_back(out_mesh.add_vertex({vert._ppos[0], vert._ppos[1], 0}));
     }
+
+    std::vector<bool> used(jig_mesh._vert2._size);
 
     // add triangles
     Mesh::VertexHandle v0, v1, v2;
@@ -133,8 +95,25 @@ static void convertToMesh(const jigsaw_msh_t& jig_mesh, Mesh& out_mesh) {
         v1 = vertex_handles[tri._node[1]];
         v2 = vertex_handles[tri._node[2]];
 
+        used[tri._node[0]] = true;
+        used[tri._node[1]] = true;
+        used[tri._node[2]] = true;
+
         out_mesh.add_face(v0, v1, v2);
     }
+
+    // remove unused vertices
+    for (std::size_t i = 0; i < used.size(); i++) {
+        if (!used[i]) {
+
+            // assert vertex is not connected to something
+            assert(!out_mesh.is_valid_handle(vertex_handles[i].halfedge()));
+
+            out_mesh.delete_vertex(vertex_handles[i]);
+        }
+    }
+
+    out_mesh.garbage_collection();
 }
 
 void JigsawTriangulator::generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh) {
@@ -146,27 +125,24 @@ void JigsawTriangulator::generateMesh(const Boundary& boundary, const SizeFuncti
     jig._verbosity = 1;
     jig._mesh_dims = 2;
 
-    jigsaw_msh_t coast, mesh, h_fun;
+    jigsaw_msh_t coast, mesh;
     jigsaw_init_msh_t(&coast);
     jigsaw_init_msh_t(&mesh);
-    jigsaw_init_msh_t(&h_fun);
 
     // buffers need same lifetime as mesh
     VertexBuffer vertices;
     EdgeBuffer edges;
     BoundBuffer bounds;
-    CoordBuffer x_buf, y_buf;
-    ValueBuffer value;
 
     convertBoundary(boundary, coast, vertices, edges, bounds);
 
-    // size function
-    convertSize(size, h_fun, x_buf, y_buf, value);
+    JigsawSizeFunction h_fun(size);
+
     jig._hfun_hmax = metersToDegrees(size.getMax());
     jig._hfun_hmin = 0;
     jig._hfun_scal = JIGSAW_HFUN_ABSOLUTE;
 
-    int retv = jigsaw(&jig, &coast, NULL, &h_fun, &mesh);
+    int retv = jigsaw(&jig, &coast, NULL, &h_fun.getJigsawMesh(), &mesh);
 
     if (retv != 0) {
         throw std::runtime_error("jigsaw error " + std::to_string(retv));
