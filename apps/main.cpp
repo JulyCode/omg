@@ -12,6 +12,7 @@
 #include <boundary/boundary.h>
 #include <mesh/remeshing.h>
 #include <analysis/mesh_quality.h>
+#include <analysis/aggregates.h>
 #include <util.h>
 
 int main() {
