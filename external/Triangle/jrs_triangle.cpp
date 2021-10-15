@@ -61,7 +61,7 @@ int triunsuitable(REAL* triorg, REAL* tridest, REAL* triapex, REAL area)  // tri
     }
 }
 
-#include "triangle.c"  // compile this with C++ compiler to make use of the namespace
+#include "triangle/triangle.c"  // compile this with C++ compiler to make use of the namespace
 
 void trifree(void* memptr) {  // VOID* in triangle.c is defined as int*, but has to be void* in C++
     trifree((int*) memptr);

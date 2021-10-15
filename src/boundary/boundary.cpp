@@ -7,22 +7,29 @@
 #include <boundary/marching_quads.h>
 #include <boundary/simplification.h>
 #include <geometry/line_intersection.h>
+#include <util.h>
 
 #include <io/vtk_writer.h>
 
 namespace omg {
 
-Boundary::Boundary(const BathymetryData& data, const LineGraph& poly, const SizeFunction& size, real_t height)
-    : height(height), data(data), size(size) {
+Boundary::Boundary(const BathymetryData& data, const LineGraph& poly, const SizeFunction& size)
+    : data(data), size(size) {
 
     // convert LineGraph to region HEPolygon
     convertToRegion(poly);
+}
+
+void Boundary::generate(real_t height, bool simplify) {
+    this->height = height;
 
     LineGraph coast = marchingQuads(data, height);
     // io::writeLegacyVTK("../../apps/coast.vtk", coast);
 
+    coast.removeDegeneratedGeometry();
+
     // search adjacent edges per vertex
-    AdjacencyList adjacency = getAdjacency(coast);
+    AdjacencyList adjacency = coast.computeAdjacency();
 
     // insert intersections of region with coast
     IntersectionList intersections;
@@ -64,60 +71,48 @@ Boundary::Boundary(const BathymetryData& data, const LineGraph& poly, const Size
         cycles.erase(cycles.begin() + outer_idx);
     }
 
-    std::cout << outer.numVertices() << " vertices" << std::endl;
-
-    omg::simplifyPolygon(outer, size);
-    if (outer.isDegenerated()) {
-        throw std::runtime_error("outer boundary is degenerated");
+    // simplify outer
+    if (simplify) {
+        omg::simplifyPolygon(outer, size);
+        if (outer.isDegenerated()) {
+            throw std::runtime_error("outer boundary is degenerated");
+        }
+        outer.garbageCollect();
     }
-    outer.garbageCollect();
 
     std::cout << outer.numVertices() << " vertices" << std::endl;
-    io::writeLegacyVTK("../../apps/outer.vtk", LineGraph(outer));
-
     std::cout << cycles.size() << " cycles" << std::endl;
 
-    // move the islands to holes
-    std::mutex hole_mutex;
+    islands.clear();
+    findIslands(cycles, simplify);
 
-    #pragma omp parallel for
-    for (std::size_t i = 0; i < cycles.size(); i++) {
-        HEPolygon& c = cycles[i];
+    std::cout << islands.size() << " holes" << std::endl;
+}
 
-        const vec2_t& start_point = c.point(*c.vertices().begin());
+bool Boundary::hasIntersections() const {
+    ScopeTimer timer("Has intersections");
 
-        if (!enclosesWater(c) && outer.pointInPolygon(start_point)) {
-
-            omg::simplifyPolygon(c, size);
-            if (!c.isDegenerated()) {
-                c.garbageCollect();
-
-                const std::lock_guard lock(hole_mutex);
-                holes.push_back(std::move(c));
-            }
-        }
-    }
-    std::cout << holes.size() << " holes" << std::endl;
-
-    std::vector<HEPolygon> polys = holes;
+    std::vector<HEPolygon> polys = islands;
     polys.push_back(outer);
+
     omg::LineGraph complete = LineGraph::combinePolygons(polys);
-    if (complete.hasSelfIntersection()) {
-        std::cout << "boundary intersection" << std::endl;
-    }
 
     // io::writeLegacyVTK("../../apps/complete.vtk", complete);
+
+    return complete.hasSelfIntersection();
 }
 
 void Boundary::convertToRegion(const LineGraph& poly) {
+    ScopeTimer timer("Convert to region");
+
     // check for self-intersections
     if (poly.hasSelfIntersection()) {
         throw std::runtime_error("region polygon must not intersect itself");
     }
 
     // check if non-manifold
-    AdjacencyList adjacency = getAdjacency(poly);
-    for (const auto& l : adjacency) {
+    AdjacencyList adjacency = poly.computeAdjacency();
+    for (const auto& l : adjacency.edges) {
         if (l.size() != 2) {
             throw std::runtime_error("region polygon is not manifold");
         }
@@ -131,20 +126,9 @@ void Boundary::convertToRegion(const LineGraph& poly) {
     region = std::move(cycles[0]);
 }
 
-Boundary::AdjacencyList Boundary::getAdjacency(const LineGraph& graph) const {
-    AdjacencyList adjacency(graph.numVertices());
-
-    for (EHandle eh = 0; eh < graph.numEdges(); eh++) {
-
-        adjacency[graph.getEdge(eh).first].push_back(eh);
-        adjacency[graph.getEdge(eh).second].push_back(eh);
-    }
-
-    return adjacency;
-}
-
 void Boundary::computeIntersections(const LineGraph& coast, IntersectionList& intersections) const {
     // TODO: special cases
+    ScopeTimer timer("Compute intersections");
 
     std::vector<real_t> t_list;
 
@@ -237,7 +221,7 @@ void Boundary::clampToRegion(LineGraph& coast, AdjacencyList& adjacency, const I
                 new_vertices.push_back(end_cut);
 
                 // resize adjacency
-                adjacency.resize(adjacency.size() + new_vertices.size());
+                adjacency.edges.resize(adjacency.edges.size() + new_vertices.size());
 
                 // add new edges
                 for (std::size_t i = 0; i < new_vertices.size() - 1; i++) {
@@ -246,8 +230,8 @@ void Boundary::clampToRegion(LineGraph& coast, AdjacencyList& adjacency, const I
                     const VHandle v_j = new_vertices[i + 1];
 
                     const EHandle new_edge = coast.addEdge(v_i, v_j);
-                    adjacency[v_i].push_back(new_edge);
-                    adjacency[v_j].push_back(new_edge);
+                    adjacency.get(v_i).push_back(new_edge);
+                    adjacency.get(v_j).push_back(new_edge);
                 }
 
                 // remove the intersected edges and connect the new points to the coast
@@ -294,8 +278,8 @@ void Boundary::cutEdge(LineGraph& coast, AdjacencyList& adjacency, EHandle edge,
     const VHandle v2 = coast.getEdge(edge).second;
 
     // remove the cut edge
-    adjacency[v1].remove(edge);
-    adjacency[v2].remove(edge);
+    adjacency.get(v1).remove(edge);
+    adjacency.get(v2).remove(edge);
 
     // connect the vertex inside to the cut
     VHandle inside;
@@ -306,11 +290,13 @@ void Boundary::cutEdge(LineGraph& coast, AdjacencyList& adjacency, EHandle edge,
     }
 
     const EHandle e = coast.addEdge(inside, cut);
-    adjacency[inside].push_back(e);
-    adjacency[cut].push_back(e);
+    adjacency.get(inside).push_back(e);
+    adjacency.get(cut).push_back(e);
 }
 
 std::vector<HEPolygon> Boundary::findCycles(const LineGraph& coast, const AdjacencyList& adjacency) const {
+    ScopeTimer timer("Find cycles");
+
     std::vector<HEPolygon> cycles;
 
     std::vector<bool> done(coast.numVertices());  // finished vertices
@@ -330,7 +316,7 @@ std::vector<HEPolygon> Boundary::findCycles(const LineGraph& coast, const Adjace
             visited.insert(vertex);
             path.push_back(coast.getPoint(vertex));
 
-            const std::list<EHandle>& edges = adjacency[vertex];
+            const std::list<EHandle>& edges = adjacency.get(vertex);
 
             if (edges.size() == 1 || done[vertex]) {
                 // no cycle found, ignore all visited vertices
@@ -406,6 +392,35 @@ std::size_t Boundary::findOuterPolygon(const std::vector<HEPolygon>& cycles) {
     }
 
     return largest;
+}
+
+void Boundary::findIslands(std::vector<HEPolygon>& cycles, bool simplify) {
+    ScopeTimer timer("Create holes");
+
+    // move the islands to holes
+    std::mutex hole_mutex;
+
+    #pragma omp parallel for
+    for (std::size_t i = 0; i < cycles.size(); i++) {
+        HEPolygon& c = cycles[i];
+
+        const vec2_t& start_point = c.point(*c.vertices().begin());
+
+        if (!enclosesWater(c) && outer.pointInPolygon(start_point)) {
+
+            if (simplify) {
+                omg::simplifyPolygon(c, size);
+
+                if (c.isDegenerated()) {
+                    continue;
+                }
+                c.garbageCollect();
+            }
+
+            const std::lock_guard lock(hole_mutex);
+            islands.push_back(std::move(c));
+        }
+    }
 }
 
 bool Boundary::enclosesWater(const HEPolygon& poly) const {

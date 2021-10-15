@@ -12,3 +12,9 @@ out
 *.off
 
 CPPLINT.cfg
+
+external/jigsaw
+external/Triangle/triangle
+external/wo80_Triangle
+external/netcdf-cxx4
+external/OpenMesh

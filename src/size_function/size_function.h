@@ -13,6 +13,11 @@ public:
 
     // return true if the triangle (v0, v1, v2) satisfies the size constraints
     bool isTriangleGood(const vec2_t& v0, const vec2_t& v1, const vec2_t& v2) const;
+
+    inline real_t getMax() const { return max; }
+
+protected:
+    real_t max;
 };
 
 }

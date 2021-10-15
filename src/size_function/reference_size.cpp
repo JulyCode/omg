@@ -34,7 +34,9 @@ real_t AreaOfInterest::blendResolution(real_t current_resolution, const vec2_t& 
 ReferenceSize::ReferenceSize(const BathymetryData& data, const Resolution& resolution)
     : SizeFunction(data.getBoundingBox(), data.getGridSize()) {
 
-    auto begin = std::chrono::high_resolution_clock::now();
+    max = metersToDegrees(resolution.coarsest);
+
+    ScopeTimer timer("Reference size");
 
     #pragma omp parallel for
     for (std::size_t i = 0; i < grid_size[0]; i++) {
@@ -44,9 +46,6 @@ ReferenceSize::ReferenceSize(const BathymetryData& data, const Resolution& resol
             grid(idx) = calculateSize(idx, data, resolution);
         }
     }
-
-    auto end = std::chrono::high_resolution_clock::now();
-	std::cout << "Took: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << std::endl;
 }
 
 real_t ReferenceSize::calculateSize(const size2_t& idx, const BathymetryData& data, const Resolution& res) const {
@@ -81,7 +80,10 @@ real_t ReferenceSize::calculateSize(const size2_t& idx, const BathymetryData& da
         size = std::max(aoi.blendResolution(size, position), condition);  // why limit this?
     }
 
-    return size;
+    // convert from degrees to meters
+    const real_t actual_size = metersToDegrees(size);
+
+    return actual_size;
 }
 
 }

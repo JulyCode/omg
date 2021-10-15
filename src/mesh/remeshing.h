@@ -11,6 +11,8 @@ public:
 
     void remesh(Mesh& mesh, unsigned int iterations = 10) const;
 
+    static int computeOptimalValence(const OpenMesh::SmartVertexHandle& vh, const Mesh& mesh);
+
 private:
     const SizeFunction& size;
     const real_t min_size_factor;
@@ -23,7 +25,6 @@ private:
                      const OpenMesh::SmartVertexHandle& vh) const;
 
     void equalizeValences(Mesh& mesh) const;
-    int computeOptimalValence(const OpenMesh::SmartVertexHandle& vh, const Mesh& mesh) const;
 
     void smoothVertices(Mesh& mesh) const;
 };

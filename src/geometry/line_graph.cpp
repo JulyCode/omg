@@ -2,6 +2,7 @@
 #include "line_graph.h"
 
 #include <geometry/line_intersection.h>
+#include <util.h>
 
 namespace omg {
 
@@ -115,6 +116,78 @@ AxisAlignedBoundingBox LineGraph::computeBoundingBox() const {
     return aabb;
 }
 
+LineGraph::AdjacencyList LineGraph::computeAdjacency() const {
+    return AdjacencyList(*this);
+}
+
+void LineGraph::removeDegeneratedGeometry() {
+    ScopeTimer timer("Remove degenerated geomeetry");
+
+    AdjacencyList adjacency = computeAdjacency();
+
+    std::unordered_set<VertexHandle> deleted_vertices;
+    std::vector<EdgeHandle> deleted_edges;
+
+    for (EdgeHandle eh = 0; eh < edges.size(); eh++) {
+        const Edge& e = getEdge(eh);
+
+        const vec2_t& p0 = getPoint(e.first);
+        const vec2_t& p1 = getPoint(e.second);
+
+        // remove degenerated edge
+        if (p0[0] == p1[0] && p0[1] == p1[1]) {
+
+            // mark duplicate vertex and edge as deleted
+            deleted_vertices.insert(e.second);
+            deleted_edges.push_back(eh);
+
+            const EdgeHandle next = adjacency.getNext(eh);
+
+            // connect following edge to remaining point
+            if (edges[next].first == e.second) {
+                edges[next].first = e.first;
+            } else {
+                edges[next].second = e.first;
+            }
+
+            // fix adjacency
+            if (adjacency.edges[e.first].front() == eh) {
+                adjacency.edges[e.first].front() = next;
+            } else {
+                adjacency.edges[e.first].back() = next;
+            }
+        }
+    }
+
+    // change VertexHandles in edges
+    std::size_t offset = 0;
+    const std::size_t old_vertices = numVertices();
+
+    for (VertexHandle vh = 0; vh < old_vertices; vh++) {
+
+        if (deleted_vertices.find(vh) != deleted_vertices.end()) {
+            // remove vertex and adjust offset
+            points.erase(points.begin() + vh - offset);
+            offset++;
+            continue;
+        }
+
+        if (offset != 0) {
+            for (EdgeHandle eh : adjacency.get(vh)) {
+                // update to new VertexHandle
+                if (edges[eh].first == vh) {
+                    edges[eh].first -= offset;
+                } else {
+                    edges[eh].second -= offset;
+                }
+            }
+        }
+    }
+
+    // remove edges
+    eraseByIndices(edges, deleted_edges.begin(), deleted_edges.end());
+}
+
 bool LineGraph::hasSelfIntersection() const {  // TODO: improve performance
     for (const Edge& e1 : getEdges()) {
         const LineSegment l1 = {getPoint(e1.first), getPoint(e1.second)};
@@ -135,6 +208,39 @@ bool LineGraph::hasSelfIntersection() const {  // TODO: improve performance
         }
     }
     return false;
+}
+
+
+LineGraphAdjacencyList::LineGraphAdjacencyList(const LineGraph& lg)
+    : lg(lg) {
+
+    edges.resize(lg.numVertices());
+
+    for (EdgeHandle eh = 0; eh < lg.numEdges(); eh++) {
+
+        edges[lg.getEdge(eh).first].push_back(eh);
+        edges[lg.getEdge(eh).second].push_back(eh);
+    }
+}
+
+LineGraphAdjacencyList::EdgeHandle LineGraphAdjacencyList::getPrev(EdgeHandle eh) const {
+    const std::list<EdgeHandle>& adj = edges[lg.getEdge(eh).first];
+
+    const EdgeHandle e = adj.front();
+    if (e == eh) {
+        return adj.back();
+    }
+    return e;
+}
+
+LineGraphAdjacencyList::EdgeHandle LineGraphAdjacencyList::getNext(EdgeHandle eh) const {
+    const std::list<EdgeHandle>& adj = edges[lg.getEdge(eh).second];
+
+    const EdgeHandle e = adj.front();
+    if (e == eh) {
+        return adj.back();
+    }
+    return e;
 }
 
 }

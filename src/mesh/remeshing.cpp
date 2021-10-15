@@ -12,6 +12,7 @@ IsotropicRemeshing::IsotropicRemeshing(const SizeFunction& size, real_t min_size
     : size(size), min_size_factor(min_size_factor), max_size_factor(max_size_factor) {}
 
 void IsotropicRemeshing::remesh(Mesh& mesh, unsigned int iterations) const {
+    ScopeTimer timer("Isotropic remeshing");
 
     mesh.request_vertex_status();
 	mesh.request_edge_status();
@@ -50,7 +51,7 @@ void IsotropicRemeshing::splitEdges(Mesh& mesh) const {
         const real_t max_length = max_size_factor * size.getValue(center);
 
         // check edge length
-		if (degreesToMeters(diff.norm()) > max_length) {  // TODO: use geoDistance?
+		if (diff.norm() > max_length) {  // TODO: use geoDistance?
 
 			// split edge at center and mark as visited
 			const auto center_vertex = mesh.split(eh, toVec3(center));
@@ -69,7 +70,7 @@ void IsotropicRemeshing::collapseEdges(Mesh& mesh) const {
 		const vec2_t& p0 = toVec2(mesh.point(eh.v0()));
 		const vec2_t& p1 = toVec2(mesh.point(eh.v1()));
 
-		const real_t len = degreesToMeters((p1 - p0).norm());  // TODO: use geoDistance?
+		const real_t len = (p1 - p0).norm();  // TODO: use geoDistance?
 
         const vec2_t center = (p0 + p1) / 2;
         const real_t min_length = min_size_factor * size.getValue(center);
@@ -173,7 +174,7 @@ void IsotropicRemeshing::equalizeValences(Mesh& mesh) const {
     std::cout << cnt << " flips" << std::endl;
 }
 
-int IsotropicRemeshing::computeOptimalValence(const OpenMesh::SmartVertexHandle& vh, const Mesh& mesh) const {
+int IsotropicRemeshing::computeOptimalValence(const OpenMesh::SmartVertexHandle& vh, const Mesh& mesh) {
     if (!vh.is_boundary()) {
         return 6;
     }

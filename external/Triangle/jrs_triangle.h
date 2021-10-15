@@ -8,7 +8,7 @@ namespace jrs {  // wrap Triangle in a C++ namespace to avoid conflicts
 #define REAL double
 #define VOID void
 
-#include "triangle.h"
+#include "triangle/triangle.h"
 
 void set_triunsuitable_callback(int (*callback) (REAL* v1, REAL* v2, REAL* v3, REAL area));
 

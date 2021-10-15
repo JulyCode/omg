@@ -22,7 +22,7 @@ static std::size_t collapse(HEPolygon& poly, const SizeFunction& size) {
 
         const real_t target = size.getValue((p1 + p2) / 2);
 
-        bool remove = degreesToMeters((p2 - p1).norm()) < target;
+        bool remove = (p2 - p1).norm() < target;
 
         // fix degenerated areas
         remove |= degreesToMeters((p3 - p1).norm()) < 1;  // TODO: use geoDistance?

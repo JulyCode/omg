@@ -44,6 +44,7 @@ public:
     inline vec2_t getPoint(const size2_t& idx) const { return aabb.min + toVec2(idx) * cell_size; }
 
     inline std::size_t linearIndex(const size2_t& idx) const;
+    inline size2_t gridIndex(std::size_t linear_idx) const;
 
 protected:
     const AxisAlignedBoundingBox aabb;
@@ -143,9 +144,7 @@ vec2_t ScalarField<T>::computeGradient(const size2_t& idx) const {
     const T f_min_y = grid_values[idx[0] + min_idx[1] * grid_size[0]];
     const T f_max_y = grid_values[idx[0] + max_idx[1] * grid_size[0]];
 
-    if (distance[0] == 0 || distance[1] == 0) {
-        return vec2_t(0);  // should never happen
-    }
+    assert(distance[0] != 0 && distance[1] != 0);
 
     vec2_t grad(0);
     grad[0] = static_cast<real_t>(f_max_x - f_min_x) / distance[0];
@@ -156,12 +155,16 @@ vec2_t ScalarField<T>::computeGradient(const size2_t& idx) const {
 
 template<typename T>
 inline std::size_t ScalarField<T>::linearIndex(const size2_t& idx) const {
-    if (idx[0] >= grid_size[0] || idx[1] >= grid_size[1]) {
-        const std::string s1 = std::to_string(idx[0]) + ", " + std::to_string(idx[1]);
-        const std::string s2 = std::to_string(grid_size[0]) + ", " + std::to_string(grid_size[1]);
-        throw std::out_of_range("Index (" + s1 + ") is out of range (" + s2 + ")");
-    }
+    assert(idx[0] < grid_size[0] && idx[1] < grid_size[1]);
+
     return idx[0] + idx[1] * grid_size[0];
+}
+
+template<typename T>
+inline size2_t ScalarField<T>::gridIndex(std::size_t linear_idx) const {
+    assert(linear_idx < grid_values.size());
+
+    return {linear_idx % grid_size[0], linear_idx / grid_size[0]};
 }
 
 template<typename T>
