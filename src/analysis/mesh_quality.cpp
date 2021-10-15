@@ -111,9 +111,9 @@ std::vector<int> computeValenceDeviation(const Mesh& mesh) {
 std::vector<real_t> computeEdgeLength(const Mesh& mesh) {
     std::vector<real_t> length;
 
-    for (const auto& heh : mesh.halfedges()) {
+    for (const auto& eh : mesh.edges()) {
 
-        length.push_back((mesh.point(heh.from()) - mesh.point(heh.to())).norm());
+        length.push_back((mesh.point(eh.v0()) - mesh.point(eh.v1())).norm());
     }
 
     return length;
