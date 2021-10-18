@@ -7,6 +7,7 @@ FetchContent_Declare(
   GIT_TAG c1ae47455f6f906a2dc28ea26b78909e2a5dc0e4
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/jigsaw"
 )
+set(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT TRUE)
 
 FetchContent_Declare(
   wo80_Triangle
@@ -33,7 +34,23 @@ FetchContent_Declare(
 )
 OPTION(NCXX_ENABLE_TESTS "Enable tests. Run with 'make test'." OFF)
 
-FetchContent_MakeAvailable(jigsaw wo80_Triangle OpenMesh netcdf-cxx4)
+FetchContent_MakeAvailable(jigsaw wo80_Triangle)
+
+find_package(OpenMesh)
+if (OpenMesh_FOUND)
+  message("OpenMesh found")
+else ()
+  message("Fetching OpenMesh")
+  FetchContent_MakeAvailable(OpenMesh)
+endif ()
+
+#find_package(netCDFCxx)
+if (netCDFCxx_FOUND)
+  message("netCDFCxx found")
+else ()
+  message("Fetching netCDFCxx")
+  FetchContent_MakeAvailable(netcdf-cxx4)
+endif ()
 
 add_subdirectory(wo80_Triangle/src)
 
