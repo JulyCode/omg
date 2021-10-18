@@ -138,7 +138,7 @@ void JigsawTriangulator::generateMesh(const Boundary& boundary, const SizeFuncti
 
     JigsawSizeFunction h_fun(size);
 
-    jig._hfun_hmax = metersToDegrees(size.getMax());
+    jig._hfun_hmax = size.getMax();
     jig._hfun_hmin = 0;
     jig._hfun_scal = JIGSAW_HFUN_ABSOLUTE;
 
