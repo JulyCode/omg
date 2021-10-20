@@ -6,6 +6,7 @@ namespace omg {
 
 void simpleGradientLimiting(SizeFunction& size, real_t limit, real_t time_step, std::size_t iterations = 200);
 
+void fastGradientLimitingAxial(SizeFunction& size, real_t limit, bool use_diagonals);
 void fastGradientLimiting(SizeFunction& size, real_t limit);
 
 void jigsawGradientLimiting(SizeFunction& size, real_t limit);

@@ -2,10 +2,8 @@
 #include "gradient_limiting.h"
 
 #include <iostream>
-#include <queue>
-#include <set>
+#include <list>
 
-#include <io/vtk_writer.h>
 #include <util.h>
 #include <size_function/jigsaw_size.h>
 
@@ -41,7 +39,45 @@ static vec2_t backwardDifference(const ScalarField<real_t>& size, size2_t idx) {
     return diff / size.getCellSize();
 }
 
-static void check(const SizeFunction& size, real_t limit) {
+static void allDifferences(const ScalarField<real_t>& size, size2_t idx, std::vector<real_t>& grad) {
+    std::fill(grad.begin(), grad.end(), 0);
+
+    const real_t dia = size.getCellSize().norm();
+
+    if (idx[0] > 0) {
+        grad[0] = (size.grid(idx) - size.grid(idx[0] - 1, idx[1])) / size.getCellSize()[0];
+
+        if (idx[1] > 0) {
+            grad[4] = (size.grid(idx) - size.grid(idx[0] - 1, idx[1] - 1)) / dia;
+        }
+
+        if (idx[1] + 1 < size.getGridSize()[1]) {
+            grad[5] = (size.grid(idx[0] - 1, idx[1] + 1) - size.grid(idx)) / dia;
+        }
+    }
+
+    if (idx[1] > 0) {
+        grad[1] = (size.grid(idx) - size.grid(idx[0], idx[1] - 1)) / size.getCellSize()[0];
+    }
+
+    if (idx[0] + 1 < size.getGridSize()[0]) {
+        grad[2] = (size.grid(idx[0] + 1, idx[1]) - size.grid(idx)) / size.getCellSize()[1];
+
+        if (idx[1] > 0) {
+            grad[6] = (size.grid(idx[0] + 1, idx[1] - 1) - size.grid(idx)) / dia;
+        }
+
+        if (idx[1] + 1 < size.getGridSize()[1]) {
+            grad[7] = (size.grid(idx[0] + 1, idx[1] + 1) - size.grid(idx)) / dia;
+        }
+    }
+
+    if (idx[1] + 1 < size.getGridSize()[1]) {
+        grad[3] = (size.grid(idx[0], idx[1] + 1) - size.grid(idx)) / size.getCellSize()[1];
+    }
+}
+
+static void checkLocalDifference(const SizeFunction& size, real_t limit) {
     int cnt = 0;
 
     for (std::size_t i = 0; i < size.getGridSize()[0] - 1; i++) {
@@ -53,7 +89,7 @@ static void check(const SizeFunction& size, real_t limit) {
             }
         }
     }
-    std::cout << "Errors: " << cnt << std::endl;
+    std::cout << "Gradient errors: " << cnt << std::endl;
 }
 
 void simpleGradientLimiting(SizeFunction& size, real_t limit, real_t time_step, std::size_t iterations) {
@@ -103,7 +139,6 @@ void simpleGradientLimiting(SizeFunction& size, real_t limit, real_t time_step, 
         }
 
         std::swap(old_size, new_size);
-        std::cout << "iteration " << iter << " changed " << changed << std::endl;
         iter++;
     } while (changed != 0 && iter < iterations);
 
@@ -112,7 +147,7 @@ void simpleGradientLimiting(SizeFunction& size, real_t limit, real_t time_step, 
         size.grid() = std::move(old_size->grid());
     }
 
-    check(size, limit);
+    checkLocalDifference(size, limit);
 }
 
 
@@ -243,42 +278,59 @@ public:
     std::vector<Handle> lookup_table;  // translates linear index to index into heap
 };
 
-void fastGradientLimiting(SizeFunction& size, real_t limit) {
-    ScopeTimer timer("Fast gradient limiting");
+void fastGradientLimitingAxial(SizeFunction& size, real_t limit, bool use_diagonals) {
+    ScopeTimer timer("Fast gradient limiting axial");
 
     const vec2_t& cell_size = size.getCellSize();
-    limit /= std::sqrt(2);
 
     MinHeap heap(size);
 
     // iterate from lowest to highest point
     while (!heap.empty()) {
 
-        if (heap.heap.size() % 1000000 == 0) {std::cout << heap.heap.size() << std::endl;}
-
         const size2_t center = heap.pop();
         const real_t center_value = size.grid(center);
 
-        const vec2_t backward = backwardDifference(size, center);
-        const vec2_t forward = forwardDifference(size, center);
+        std::vector<real_t> grad;  // gradient from center to neighbors
+        std::vector<size2_t> neighbors;
+        std::vector<real_t> spacing;
 
-        // gradient from center to neighbors
-        const real_t grad[4] = {backward[0], backward[1], forward[0], forward[1]};
+        if (!use_diagonals) {
+            // only neighbors left, right, up, down
+            const vec2_t backward = backwardDifference(size, center);
+            const vec2_t forward = forwardDifference(size, center);
 
-        const size2_t neighbors[4] = {{center[0] - 1, center[1]}, {center[0], center[1] - 1},
-                                      {center[0] + 1, center[1]}, {center[0], center[1] + 1}};
+            grad = {backward[0], backward[1], forward[0], forward[1]};
 
-        const real_t spacing[4] = {cell_size[0], cell_size[1], cell_size[0], cell_size[1]};
+            neighbors = {{center[0] - 1, center[1]}, {center[0], center[1] - 1},
+                         {center[0] + 1, center[1]}, {center[0], center[1] + 1}};
+
+            spacing = {cell_size[0], cell_size[1], cell_size[0], cell_size[1]};
+
+        } else {
+            // additionally use neighbors on diagonals
+            grad.resize(8);
+            allDifferences(size, center, grad);
+
+            neighbors = {{center[0] - 1, center[1]}, {center[0], center[1] - 1},
+                         {center[0] + 1, center[1]}, {center[0], center[1] + 1},
+                         {center[0] - 1, center[1] - 1}, {center[0] - 1, center[1] + 1},
+                         {center[0] + 1, center[1] - 1}, {center[0] + 1, center[1] + 1}};
+
+            const real_t diagonal = cell_size.norm();
+            spacing = {cell_size[0], cell_size[1], cell_size[0], cell_size[1],
+                       diagonal, diagonal, diagonal, diagonal};
+        }
 
         // iterate over neighbors
-        for (int i = 0; i < 4; i++) {
+        for (std::size_t i = 0; i < neighbors.size(); i++) {
 
             if (std::abs(grad[i]) > limit) {  // also handles boundary check (grad[i] == 0)
 
                 const MinHeap::Handle handle = heap.find(neighbors[i]);
                 if (heap.isValid(handle)) {  // still in heap
 
-                    const real_t new_size = limit * spacing[i] + center_value;  // TODO: small epsilon
+                    const real_t new_size = (limit * spacing[i] + center_value) * 0.999999;
 
                     assert(new_size < size.grid(neighbors[i]) * 1.01);
 
@@ -287,7 +339,125 @@ void fastGradientLimiting(SizeFunction& size, real_t limit) {
             }
         }
     }
-    check(size, limit);
+    checkLocalDifference(size, limit);
+}
+
+
+static void solveQuadrant(std::list<real_t>& solutions, real_t v0, real_t v1, real_t param_c, real_t max_value) {
+    // Consider the gradient in this quadrant as a combination
+    // of the differences to the two neighbors on the axes of this quadrant.
+    // The length of this gradient is set to be the limit.
+    // This creates a quadratic equation that can be solved for the current points value.
+
+    real_t a = 0;
+    real_t b = 0;
+    real_t c = -param_c;
+
+    // only consider points with fixed values (less than currently smallest value in heap)
+    if (v0 <= max_value) {
+        a++;
+        b += -2 * v0;
+        c += v0 * v0;
+    }
+    if (v1 <= max_value) {
+        a++;
+        b += -2 * v1;
+        c += v1 * v1;
+    }
+
+    if (a == 0) {
+        return;
+    }
+
+    const real_t discriminant = b * b - 4 * a * c;
+
+    // only positive solutions are valid
+    if (discriminant == 0 && b <= 0) {
+        solutions.push_back(-b / (2 * a));
+
+    } else if (discriminant > 0) {
+        solutions.push_back(std::abs((-b + std::sqrt(discriminant)) / (2 * a)));
+    }
+}
+
+void fastGradientLimiting(SizeFunction& size, real_t limit) {
+    ScopeTimer timer("Fast gradient limiting");
+
+    const size2_t& grid_size = size.getGridSize();
+    const real_t cell_size = size.getCellSize()[0];  // assume equal cell sizes in x and y
+    const real_t param_c = limit * limit * cell_size * cell_size;  // parameter c in quadratic equation
+
+    const int offset[4][2] = {{-1, 0}, {0, -1}, {1, 0}, {0, 1}};
+
+    MinHeap heap(size);
+
+    // iterate from lowest to highest point
+    while (!heap.empty()) {
+
+        const size2_t center = heap.pop();
+        const real_t center_value = size.grid(center);
+
+        // iterate over neighbors
+        for (int i = 0; i < 4; i++) {
+
+            // bounds checks
+            if ((center[0] == 0 && offset[i][0] == -1) || (center[1] == 0 && offset[i][1] == -1)) {
+                continue;
+            }
+
+            const size2_t idx(center[0] + offset[i][0], center[1] + offset[i][1]);
+
+            if (idx[0] >= grid_size[0] || idx[1] >= grid_size[1]) {
+                continue;
+            }
+
+            const MinHeap::Handle handle = heap.find(idx);
+            if (heap.isValid(handle)) {  // still in heap
+
+                vec2_t max = backwardDifference(size, idx);
+                max[0] = std::max(max[0], 0.0);
+                max[1] = std::max(max[1], 0.0);
+
+                vec2_t min = forwardDifference(size, idx);
+                min[0] = std::min(min[0], 0.0);
+                min[1] = std::min(min[1], 0.0);
+
+                const real_t grad = std::sqrt(max.dot(max) + min.dot(min));
+
+                if (grad > limit) {
+
+                    const real_t old_size = size.grid(idx);
+
+                    // neighbors neighbors size values
+                    const real_t nn0 = max[0] == 0 ? old_size : size.grid(idx[0] - 1, idx[1]);
+                    const real_t nn1 = max[1] == 0 ? old_size : size.grid(idx[0], idx[1] - 1);
+                    const real_t nn2 = min[0] == 0 ? old_size : size.grid(idx[0] + 1, idx[1]);
+                    const real_t nn3 = min[1] == 0 ? old_size : size.grid(idx[0], idx[1] + 1);
+
+                    std::list<real_t> solutions;
+                    // consider each quadrant separately
+                    solveQuadrant(solutions, nn0, nn1, param_c, center_value);
+                    solveQuadrant(solutions, nn0, nn3, param_c, center_value);
+                    solveQuadrant(solutions, nn2, nn1, param_c, center_value);
+                    solveQuadrant(solutions, nn2, nn3, param_c, center_value);
+
+                    // get smallest solution
+                    real_t new_size = old_size;
+                    for (real_t s : solutions) {
+                        if (s < new_size) {
+                            assert(s > 0);
+                            new_size = s;
+                        }
+                    }
+
+                    assert(new_size < size.grid(idx) * 1.01);
+
+                    heap.update(handle, new_size);  // also updates size function
+                }
+            }
+        }
+    }
+    checkLocalDifference(size, limit);
 }
 
 
@@ -310,7 +480,7 @@ void jigsawGradientLimiting(SizeFunction& size, real_t limit) {
 
     h_fun.toSizeFunction(size);
 
-    check(size, limit);
+    checkLocalDifference(size, limit);
 }
 
 }
