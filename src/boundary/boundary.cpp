@@ -198,9 +198,40 @@ void Boundary::computeIntersections(const LineGraph& coast, IntersectionList& in
             const LineGraph::Edge& c_edge = coast.getEdge(c_eh);
             const LineSegment l2 = {coast.getPoint(c_edge.first), coast.getPoint(c_edge.second)};
 
-            std::optional<real_t> t = lineIntersectionFactor(l1, l2);
+            if (collinear(l1, l2)) {
+                std::cout << "collinear" << std::endl;
+                continue;
+            }
+
+            const std::optional<real_t> t = lineIntersectionFactor(l1, l2);
             // intersection found
             if (t) {
+
+                if (*t == 0 || *t == 1) {
+                    std::cout << "region vertex" << std::endl;
+                }
+
+                const std::optional<real_t> u = lineIntersectionFactor(l2, l1);
+                if (!u) {
+                    std::cout << "fuck" << std::endl;
+                }
+                // special case: coast vertex is on region edge
+                if (*u == 0 || *u == 1) {
+                    std::cout << "coast vertex" << std::endl;
+
+                    const vec2_t& outer_point = *u == 0 ? l2.second : l2.first;
+                    // connecting vectors
+                    const vec2_t ba = l1.second - l1.first;
+                    const vec2_t bc = outer_point - l1.first;
+
+                    assert(ba[0] * bc[1] - ba[1] * bc[0] != 0);  // other point also on edge, triggers collinear case
+                    bool edge_inside = ba[0] * bc[1] - ba[1] * bc[0] > 0;
+
+                    if (!edge_inside) {
+                        continue;  // skip intersection if rest of edge is outside region
+                    }
+                }
+
                 const vec2_t point = l1.first + (*t) * (l1.second - l1.first);
                 const vec2_t point2 = l2.first + (*u) * (l2.second - l2.first);
                 if (point != point2) {
@@ -227,7 +258,7 @@ void Boundary::computeIntersections(const LineGraph& coast, IntersectionList& in
                 }
             }
         }
-        intersections[r_eh] = edge_ints;
+        intersections[r_eh] = std::move(edge_ints);
         t_list.clear();
     }
 }
