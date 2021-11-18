@@ -73,11 +73,51 @@ LineGraph::EdgeHandle LineGraph::addEdge(VertexHandle v1, VertexHandle v2) {
     return idx;
 }
 
+void LineGraph::removeEdgesByIndex(std::vector<EdgeHandle>& indices) {
+    eraseByIndices(edges, indices.begin(), indices.end());
+}
+
+void LineGraph::removeVerticesByIndex(std::unordered_set<VertexHandle>& indices) {
+    AdjacencyList adjacency = computeAdjacency();
+
+    std::size_t offset = 0;
+    const std::size_t old_vertices = numVertices();
+
+    for (VertexHandle vh = 0; vh < old_vertices; vh++) {
+
+        if (indices.find(vh) != indices.end()) {
+            // remove vertex and adjust offset
+            points.erase(points.begin() + vh - offset);
+            offset++;
+            continue;
+        }
+
+        if (offset != 0) {
+            for (EdgeHandle eh : adjacency.get(vh)) {
+                // update to new VertexHandle
+                if (edges[eh].first == vh) {
+                    edges[eh].first -= offset;
+                } else {
+                    edges[eh].second -= offset;
+                }
+            }
+        }
+    }
+}
+
 const vec2_t& LineGraph::getPoint(VertexHandle v) const {
     return points[v];
 }
 
+vec2_t& LineGraph::getPoint(VertexHandle v) {
+    return points[v];
+}
+
 const LineGraph::Edge& LineGraph::getEdge(EdgeHandle e) const {
+    return edges[e];
+}
+
+LineGraph::Edge& LineGraph::getEdge(EdgeHandle e) {
     return edges[e];
 }
 
@@ -221,6 +261,22 @@ LineGraphAdjacencyList::LineGraphAdjacencyList(const LineGraph& lg)
         edges[lg.getEdge(eh).first].push_back(eh);
         edges[lg.getEdge(eh).second].push_back(eh);
     }
+}
+
+std::list<LineGraph::VertexHandle> LineGraphAdjacencyList::getNeighbors(VertexHandle vh) const {
+    std::list<LineGraph::VertexHandle> neighbors;
+
+    for (EdgeHandle eh : edges[vh]) {
+        const LineGraph::Edge& e = lg.getEdge(eh);
+
+        if (e.first != vh) {
+            neighbors.push_back(e.first);
+        }
+        if (e.second != vh) {
+            neighbors.push_back(e.second);
+        }
+    }
+    return neighbors;
 }
 
 LineGraphAdjacencyList::EdgeHandle LineGraphAdjacencyList::getPrev(EdgeHandle eh) const {
