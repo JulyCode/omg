@@ -1,5 +1,5 @@
 
-file(GLOB SOURCES */*.cpp */*.h)
+file(GLOB SOURCES *.h */*.cpp */*.h)
 
 add_library(OMG ${SOURCES})
 

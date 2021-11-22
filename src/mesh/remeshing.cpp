@@ -179,15 +179,17 @@ int IsotropicRemeshing::computeOptimalValence(const OpenMesh::SmartVertexHandle&
         return 6;
     }
 
+    if (!mesh.is_valid_handle(vh.halfedge())) {
+        return 0;
+    }
+
     const vec2_t& point = toVec2(mesh.point(vh));
 
     // get the neighbors on the boundary
-    const auto& a = vh.halfedge().prev().from();
+    const auto& a = vh.halfedge().prev().from();  // prev(): Assertion `is_valid_handle(_heh)' failed. ostsee without encloses water
     const auto& b = vh.halfedge().to();
 
-    if (!a.is_boundary() || !b.is_boundary() || !vh.halfedge().is_boundary()) {
-        std::cout << "not boundary" << std::endl;
-    }
+    assert(a.is_boundary() && b.is_boundary() && vh.halfedge().is_boundary());
 
     // vectors to a and b
     const vec2_t d1 = (toVec2(mesh.point(a)) - point).normalized();

@@ -27,8 +27,14 @@ public:
     VertexHandle addVertex(const vec2_t& p);
     EdgeHandle addEdge(VertexHandle v1, VertexHandle v2);
 
+    void removeEdgesByIndex(std::vector<EdgeHandle>& indices);
+    void removeVerticesByIndex(std::unordered_set<VertexHandle>& indices);
+
     const vec2_t& getPoint(VertexHandle v) const;
+    vec2_t& getPoint(VertexHandle v);
+
     const Edge& getEdge(EdgeHandle e) const;
+    Edge& getEdge(EdgeHandle e);
 
     inline std::size_t numVertices() const { return points.size(); }
     inline std::size_t numEdges() const { return edges.size(); }
@@ -60,6 +66,8 @@ public:
 
     const std::list<EdgeHandle>& get(VertexHandle vh) const { return edges[vh]; }
     std::list<EdgeHandle>& get(VertexHandle vh) { return edges[vh]; }
+
+    std::list<VertexHandle> getNeighbors(VertexHandle vh) const;
 
     EdgeHandle getPrev(EdgeHandle eh) const;
     EdgeHandle getNext(EdgeHandle eh) const;

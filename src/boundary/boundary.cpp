@@ -8,6 +8,7 @@
 #include <boundary/simplification.h>
 #include <geometry/line_intersection.h>
 #include <util.h>
+#include <analysis/assertions.h>
 
 #include <io/vtk_writer.h>
 
@@ -24,9 +25,44 @@ void Boundary::generate(real_t height, bool simplify) {
     this->height = height;
 
     LineGraph coast = marchingQuads(data, height);
-    // io::writeLegacyVTK("../../apps/coast.vtk", coast);
+    /*LineGraph coast;
+    coast.addVertex({0.5, 0.2});
+    coast.addVertex({0.5, 0.5});
+    coast.addVertex({-0.1, -0.1});
+    //coast.addVertex({0.0, 0.4});
+    //coast.addVertex({-0.5, 0.2});
+
+    coast.addEdge(0, 1);
+    coast.addEdge(1, 2);
+    coast.addEdge(2, 0);
+    //coast.addEdge(3, 4);
+    //coast.addEdge(4, 0);*/
+
+    io::writeLegacyVTK("../../apps/data/raw_coast.vtk", coast);
+
+    std::cout << "isClosed: " << analysis::isClosed(coast) << std::endl;
+    std::cout << "hasValenceGreaterTwo: " << analysis::hasValenceGreaterTwo(coast) << std::endl;
+    std::cout << "hasUnusedVertices: " << analysis::hasUnusedVertices(coast) << std::endl;
+    std::cout << "hasOneVertexLoops: " << analysis::hasOneVertexLoops(coast) << std::endl;
+    std::cout << "countTwoVertexLoops: " << analysis::countTwoVertexLoops(coast) << std::endl;
+    std::cout << "countZeroLengthEdges: " << analysis::countZeroLengthEdges(coast) << std::endl;
+    std::cout << "countIdenticalPoints: " << analysis::countIdenticalPoints(coast) << std::endl;
+    std::cout << "countCollinearEdges: " << analysis::countCollinearEdges(coast) << std::endl;
+    std::cout << "countAngles(0): " << analysis::countAngles(coast, 0) << std::endl;
+    std::cout << "countAngles(180): " << analysis::countAngles(coast, 180) << std::endl;
 
     coast.removeDegeneratedGeometry();
+
+    std::cout << "isClosed: " << analysis::isClosed(coast) << std::endl;
+    std::cout << "hasValenceGreaterTwo: " << analysis::hasValenceGreaterTwo(coast) << std::endl;
+    std::cout << "hasUnusedVertices: " << analysis::hasUnusedVertices(coast) << std::endl;
+    std::cout << "hasOneVertexLoops: " << analysis::hasOneVertexLoops(coast) << std::endl;
+    std::cout << "countTwoVertexLoops: " << analysis::countTwoVertexLoops(coast) << std::endl;
+    std::cout << "countZeroLengthEdges: " << analysis::countZeroLengthEdges(coast) << std::endl;
+    std::cout << "countIdenticalPoints: " << analysis::countIdenticalPoints(coast) << std::endl;
+    std::cout << "countCollinearEdges: " << analysis::countCollinearEdges(coast) << std::endl;
+    std::cout << "countAngles(0): " << analysis::countAngles(coast, 0) << std::endl;
+    std::cout << "countAngles(180): " << analysis::countAngles(coast, 180) << std::endl;
 
     // search adjacent edges per vertex
     AdjacencyList adjacency = coast.computeAdjacency();
@@ -38,6 +74,9 @@ void Boundary::generate(real_t height, bool simplify) {
     clampToRegion(coast, adjacency, intersections);
 
     std::vector<HEPolygon> cycles = findCycles(coast, adjacency);
+
+    io::writeLegacyVTK("../../apps/data/clamped_coast.vtk", LineGraph::combinePolygons(cycles));
+    //return;
 
     // remove polygons that are outside the region
     // TODO: doesn't work if a cut point is selected
@@ -99,6 +138,18 @@ bool Boundary::hasIntersections() const {
 
     // io::writeLegacyVTK("../../apps/complete.vtk", complete);
 
+    omg::LineGraph& coast = complete;
+    std::cout << "isClosed: " << analysis::isClosed(coast) << std::endl;
+    std::cout << "hasValenceGreaterTwo: " << analysis::hasValenceGreaterTwo(coast) << std::endl;
+    std::cout << "hasUnusedVertices: " << analysis::hasUnusedVertices(coast) << std::endl;
+    std::cout << "hasOneVertexLoops: " << analysis::hasOneVertexLoops(coast) << std::endl;
+    std::cout << "countTwoVertexLoops: " << analysis::countTwoVertexLoops(coast) << std::endl;
+    std::cout << "countZeroLengthEdges: " << analysis::countZeroLengthEdges(coast) << std::endl;
+    std::cout << "countIdenticalPoints: " << analysis::countIdenticalPoints(coast) << std::endl;
+    std::cout << "countCollinearEdges: " << analysis::countCollinearEdges(coast) << std::endl;
+    std::cout << "countAngles(0): " << analysis::countAngles(coast, 0) << std::endl;
+    std::cout << "countAngles(180): " << analysis::countAngles(coast, 180) << std::endl;
+
     return complete.hasSelfIntersection();
 }
 
@@ -147,10 +198,45 @@ void Boundary::computeIntersections(const LineGraph& coast, IntersectionList& in
             const LineGraph::Edge& c_edge = coast.getEdge(c_eh);
             const LineSegment l2 = {coast.getPoint(c_edge.first), coast.getPoint(c_edge.second)};
 
-            std::optional<real_t> t = lineIntersectionFactor(l1, l2);
+            if (collinear(l1, l2)) {
+                std::cout << "collinear" << std::endl;
+                continue;
+            }
+
+            const std::optional<real_t> t = lineIntersectionFactor(l1, l2);
             // intersection found
             if (t) {
+
+                if (*t == 0 || *t == 1) {
+                    std::cout << "region vertex" << std::endl;
+                }
+
+                const std::optional<real_t> u = lineIntersectionFactor(l2, l1);
+                if (!u) {
+                    std::cout << "fuck" << std::endl;
+                }
+                // special case: coast vertex is on region edge
+                if (*u == 0 || *u == 1) {
+                    std::cout << "coast vertex" << std::endl;
+
+                    const vec2_t& outer_point = *u == 0 ? l2.second : l2.first;
+                    // connecting vectors
+                    const vec2_t ba = l1.second - l1.first;
+                    const vec2_t bc = outer_point - l1.first;
+
+                    assert(ba[0] * bc[1] - ba[1] * bc[0] != 0);  // other point also on edge, triggers collinear case
+                    bool edge_inside = ba[0] * bc[1] - ba[1] * bc[0] > 0;
+
+                    if (!edge_inside) {
+                        continue;  // skip intersection if rest of edge is outside region
+                    }
+                }
+
                 const vec2_t point = l1.first + (*t) * (l1.second - l1.first);
+                const vec2_t point2 = l2.first + (*u) * (l2.second - l2.first);
+                if (point != point2) {
+                    std::cout << "damn" << std::endl;
+                }
 
                 // insertion sort
                 bool found = false;
@@ -172,7 +258,7 @@ void Boundary::computeIntersections(const LineGraph& coast, IntersectionList& in
                 }
             }
         }
-        intersections[r_eh] = edge_ints;
+        intersections[r_eh] = std::move(edge_ints);
         t_list.clear();
     }
 }
@@ -187,7 +273,7 @@ void Boundary::clampToRegion(LineGraph& coast, AdjacencyList& adjacency, const I
     const vec2_t& first_corner = region.startPoint(*region.halfEdges().begin());
     // if the corner is below iso height, cut the coast off
     // and use the region polygon from the last to the first intersection
-    const bool use_region_boundary = data.getValue<real_t>(first_corner) < height;
+    const bool use_region_boundary = data.getValue<real_t>(first_corner) < height;  // TODO: doesn't always work?
 
     // skip every second intersection, because it was already used
     // use_region_boundary determines if the even or odd ones are skipped
@@ -326,10 +412,7 @@ std::vector<HEPolygon> Boundary::findCycles(const LineGraph& coast, const Adjace
 
             done[vertex] = true;
 
-            if (edges.size() > 2) {
-                // non manifold, should not happen
-                std::cout << "non manifold" << std::endl;
-            }
+            assert(edges.size() <= 2);  // non manifold, should not happen
 
             // get next edge
             EHandle next_edge = edges.front();
@@ -368,7 +451,7 @@ std::size_t Boundary::findOuterPolygon(const std::vector<HEPolygon>& cycles) {
 
     // find the polygon with the largest area
     std::size_t largest = 0;
-    real_t largest_area = cycles[0].computeArea();
+    real_t largest_area = 0;
 
     for (std::size_t i = 0; i < cycles.size(); i++) {
 
