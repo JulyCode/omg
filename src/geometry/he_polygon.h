@@ -6,6 +6,10 @@
 
 namespace omg {
 
+enum PointInPolygon {
+    INSIDE, OUTSIDE, ON_EDGE
+};
+
 template<typename Handle>
 class HEPolygonIterator;
 
@@ -84,7 +88,7 @@ public:
 
     bool hasSelfIntersection() const;
 
-    bool pointInPolygon(const vec2_t& p, vec2_t dir = {1, 1}) const;
+    PointInPolygon pointInPolygon(const vec2_t& p, vec2_t dir = {1, 1}) const;
     vec2_t getPointInPolygon() const;
 
 private:

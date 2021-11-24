@@ -73,22 +73,30 @@ void Boundary::generate(real_t height, bool simplify) {
 
     clampToRegion(coast, adjacency, intersections);
 
+    io::writeLegacyVTK("../../apps/data/clamped_coast.vtk", coast);
+
     std::vector<HEPolygon> cycles = findCycles(coast, adjacency);
 
-    io::writeLegacyVTK("../../apps/data/clamped_coast.vtk", LineGraph::combinePolygons(cycles));
-    //return;
+    io::writeLegacyVTK("../../apps/data/cycles_coast.vtk", LineGraph::combinePolygons(cycles));
 
     // remove polygons that are outside the region
-    // TODO: doesn't work if a cut point is selected
     for (auto it = cycles.begin(); it != cycles.end();) {
-        const vec2_t& start_point = it->point(*it->vertices().begin());
 
-        if (!region.pointInPolygon(start_point)) {
+        PointInPolygon pip = OUTSIDE;
+        for (HEPolygon::VertexHandle vh : it->vertices()) {
+            pip = region.pointInPolygon(it->point(vh));
+            if (pip != ON_EDGE) {
+                break;
+            }
+        }
+        if (pip == OUTSIDE) {
             it = cycles.erase(it);
         } else {
             ++it;
         }
     }
+
+    io::writeLegacyVTK("../../apps/data/inside_coast.vtk", LineGraph::combinePolygons(cycles));
 
     // find and remove the outer polygon
     // special case: region polygon is completely on water
@@ -154,7 +162,7 @@ bool Boundary::hasIntersections() const {
 }
 
 void Boundary::convertToRegion(const LineGraph& poly) {
-    ScopeTimer timer("Convert to region");
+    ScopeTimer timer("Convert region");
 
     // check for self-intersections
     if (poly.hasSelfIntersection()) {
@@ -208,16 +216,13 @@ void Boundary::computeIntersections(const LineGraph& coast, IntersectionList& in
             if (t) {
 
                 if (*t == 0 || *t == 1) {
-                    std::cout << "region vertex" << std::endl;
+                    std::cout << "warning: region vertex is on iso-line" << std::endl;
                 }
 
                 const std::optional<real_t> u = lineIntersectionFactor(l2, l1);
-                if (!u) {
-                    std::cout << "fuck" << std::endl;
-                }
+                assert(u);
                 // special case: coast vertex is on region edge
                 if (*u == 0 || *u == 1) {
-                    std::cout << "coast vertex" << std::endl;
 
                     const vec2_t& outer_point = *u == 0 ? l2.second : l2.first;
                     // connecting vectors
@@ -368,11 +373,17 @@ void Boundary::cutEdge(LineGraph& coast, AdjacencyList& adjacency, EHandle edge,
     adjacency.get(v2).remove(edge);
 
     // connect the vertex inside to the cut
-    VHandle inside;
-    if (region.pointInPolygon(coast.getPoint(v1))) {
+    PointInPolygon pip1 = region.pointInPolygon(coast.getPoint(v1));
+    PointInPolygon pip2 = region.pointInPolygon(coast.getPoint(v2));
+
+    VHandle inside = v1;
+    assert(pip1 != pip2);
+    if (pip1 == INSIDE || pip2 == OUTSIDE) {
         inside = v1;
-    } else {
+    } else if (pip2 == INSIDE || pip1 == OUTSIDE) {
         inside = v2;
+    } else {
+        assert(false);
     }
 
     const EHandle e = coast.addEdge(inside, cut);
@@ -404,7 +415,7 @@ std::vector<HEPolygon> Boundary::findCycles(const LineGraph& coast, const Adjace
 
             const std::list<EHandle>& edges = adjacency.get(vertex);
 
-            if (edges.size() == 1 || done[vertex]) {
+            if (edges.size() <= 1 || done[vertex]) {
                 // no cycle found, ignore all visited vertices
                 visited.clear();
                 break;
@@ -487,9 +498,18 @@ void Boundary::findIslands(std::vector<HEPolygon>& cycles, bool simplify) {
     for (std::size_t i = 0; i < cycles.size(); i++) {
         HEPolygon& c = cycles[i];
 
-        const vec2_t& start_point = c.point(*c.vertices().begin());
+        if (!enclosesWater(c)) {
 
-        if (!enclosesWater(c) && outer.pointInPolygon(start_point)) {
+            PointInPolygon pip = OUTSIDE;
+            for (HEPolygon::VertexHandle vh : c.vertices()) {
+                pip = outer.pointInPolygon(c.point(vh));
+                if (pip != ON_EDGE) {
+                    break;
+                }
+            }
+            if (pip == OUTSIDE) {
+                continue;
+            }
 
             if (simplify) {
                 omg::simplifyPolygon(c, size);

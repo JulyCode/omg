@@ -235,18 +235,20 @@ bool HEPolygon::hasSelfIntersection() const {  // very slow
     return false;
 }
 
-bool HEPolygon::pointInPolygon(const vec2_t& p, vec2_t dir) const {
+PointInPolygon HEPolygon::pointInPolygon(const vec2_t& p, vec2_t dir) const {
     // test with bounding box
     const AxisAlignedBoundingBox aabb = computeBoundingBox();
     if (p[0] < aabb.min[0] || p[0] > aabb.max[0] || p[1] < aabb.min[1] || p[1] > aabb.max[1]) {
-        return false;
+        return OUTSIDE;
     }
 
     std::size_t intersections;
 
     int tries = 0;
-    bool repeat = false;
+    bool repeat;
     do {
+        repeat = false;
+
         // construct ray
         const real_t max_length = std::max(aabb.max[0] - aabb.min[0], aabb.max[1] - aabb.min[1]);
         const vec2_t end = p + 2 * max_length * dir.normalized();
@@ -257,12 +259,17 @@ bool HEPolygon::pointInPolygon(const vec2_t& p, vec2_t dir) const {
 
             const LineSegment edge = {startPoint(heh), endPoint(heh)};
 
-            // TODO: special cases
-            std::optional<real_t> t = lineIntersectionFactor(edge, ray);
-            if (t) {
+            std::optional<real_t> u = lineIntersectionFactor(ray, edge);
+            if (u) {
+
+                // special cases
+                if (*u == 0) {
+                    return ON_EDGE;
+                }
+
+                std::optional<real_t> t = lineIntersectionFactor(edge, ray);
 
                 if (*t == 0 || *t == 1) {
-                    // std::cout << "edge case" << std::endl;
 
                     // generate new random direction
                     static std::default_random_engine rnd;
@@ -279,14 +286,14 @@ bool HEPolygon::pointInPolygon(const vec2_t& p, vec2_t dir) const {
         ++tries;
         if (tries > 100) {
             // exit after 100 tries
-            // std::cout << "no direction found for pointInPolygon test" << std::endl;
+            std::cout << "warning: no valid direction found for pointInPolygon test" << std::endl;
             break;
         }
 
     } while (repeat);
 
     // in polygon if number of intersections is odd
-    return intersections % 2 != 0;
+    return intersections % 2 != 0 ? INSIDE : OUTSIDE;
 }
 
 vec2_t HEPolygon::getPointInPolygon() const {  // TODO: assert that adjacent edges are not parallel
