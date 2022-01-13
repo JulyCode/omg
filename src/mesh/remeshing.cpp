@@ -186,7 +186,7 @@ int IsotropicRemeshing::computeOptimalValence(const OpenMesh::SmartVertexHandle&
     const vec2_t& point = toVec2(mesh.point(vh));
 
     // get the neighbors on the boundary
-    const auto& a = vh.halfedge().prev().from();  // prev(): Assertion `is_valid_handle(_heh)' failed. ostsee without encloses water
+    const auto& a = vh.halfedge().prev().from();
     const auto& b = vh.halfedge().to();
 
     assert(a.is_boundary() && b.is_boundary() && vh.halfedge().is_boundary());
@@ -204,7 +204,7 @@ int IsotropicRemeshing::computeOptimalValence(const OpenMesh::SmartVertexHandle&
     }
 
     // valence depending on angle, but at least 2
-    return std::max<int>(std::lround(angle * 6) + 1, 2);
+    return std::clamp<int>(std::lround(angle * 6) + 1, 2, 6);
 }
 
 void IsotropicRemeshing::smoothVertices(Mesh& mesh) const {

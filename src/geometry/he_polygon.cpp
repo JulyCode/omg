@@ -269,7 +269,7 @@ PointInPolygon HEPolygon::pointInPolygon(const vec2_t& p, vec2_t dir) const {
 
                 std::optional<real_t> t = lineIntersectionFactor(edge, ray);
 
-                if (*t == 0 || *t == 1) {
+                if (*t == 0 || *t == 1 || collinear(edge, ray)) {
 
                     // generate new random direction
                     static std::default_random_engine rnd;
