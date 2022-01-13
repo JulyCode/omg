@@ -9,7 +9,7 @@ namespace omg {
 
 const SizeFunction* TriangleTriangulator::size_function;
 
-TriangleTriangulator::TriangleTriangulator() {
+TriangleTriangulator::TriangleTriangulator(real_t min_angle) : min_angle(min_angle) {
     // init callback function to interact with Triangle
     jrs::set_triunsuitable_callback(triunsuitable);
 }
@@ -39,7 +39,7 @@ void TriangleTriangulator::generateMesh(const Boundary& boundary, const SizeFunc
     args.input_type = TriangleArgs::InputType::POLY;
     args.conformdel = true;
     args.quality = true;
-    args.min_angle = 25;
+    args.min_angle = min_angle;
 
     jrs::triangulate(args.toString(), &in.io, &out.io, nullptr);
 

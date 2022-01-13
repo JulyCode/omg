@@ -8,7 +8,7 @@ namespace omg {
 
 const SizeFunction* ACuteTriangulator::size_function;
 
-ACuteTriangulator::ACuteTriangulator() {
+ACuteTriangulator::ACuteTriangulator(real_t min_angle, real_t max_angle) {
     ctx = triangle_context_create();
 
     behavior options;
@@ -23,7 +23,8 @@ ACuteTriangulator::ACuteTriangulator() {
     options.poly = true;
     options.conformdel = true;
     options.quality = true;
-    options.minangle = 25.0f;
+    options.minangle = min_angle;
+    options.maxangle = max_angle;
 
     check(triangle_context_set_behavior(ctx, &options));
 }

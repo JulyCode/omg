@@ -7,7 +7,7 @@ namespace omg {
 
 class TriangleTriangulator : public Triangulator {
 public:
-    TriangleTriangulator();
+    explicit TriangleTriangulator(real_t min_angle = 33);
 
     void generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh) override;
 
@@ -15,6 +15,8 @@ private:
     static const SizeFunction* size_function;
 
     static int triunsuitable(real_t* v1, real_t* v2, real_t* v3, real_t area);
+
+    const real_t min_angle;
 };
 
 

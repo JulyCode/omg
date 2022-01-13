@@ -10,7 +10,7 @@ namespace omg {
 
 class ACuteTriangulator : public Triangulator {
 public:
-    ACuteTriangulator();
+    explicit ACuteTriangulator(real_t min_angle = 25, real_t max_angle = 120);
     ~ACuteTriangulator();
 
     void generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh) override;
