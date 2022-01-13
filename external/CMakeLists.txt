@@ -15,6 +15,8 @@ FetchContent_Declare(
   GIT_TAG d3d0ccc94789e7e760f71de568d9d605127bb954
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/wo80_Triangle"
 )
+option(BUILD_EXAMPLES "Enable examples." OFF)
+option(BUILD_TESTING "Enable unit tests." OFF)
 
 FetchContent_Declare(
   OpenMesh

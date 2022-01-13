@@ -51,7 +51,9 @@ class ScopeTimer {
     using TimePoint = std::chrono::_V2::system_clock::time_point;
 public:
     ScopeTimer() : ScopeTimer("Duration") {}
-    explicit ScopeTimer(const std::string& msg) : start(std::chrono::high_resolution_clock::now()), msg(msg) {}
+    explicit ScopeTimer(const std::string& msg) : start(std::chrono::high_resolution_clock::now()), msg(msg) {
+        std::cout << msg << "..." << std::endl;
+    }
 
     ~ScopeTimer() {
         TimePoint end = std::chrono::high_resolution_clock::now();
