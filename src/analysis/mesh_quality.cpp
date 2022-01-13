@@ -5,6 +5,7 @@
 #include <math.h>
 
 #include <mesh/remeshing.h>
+#include <util.h>
 
 namespace omg {
 namespace analysis {
@@ -25,33 +26,46 @@ std::vector<real_t> computeRadiusRatio(const Mesh& mesh) {
         const real_t b = (va - vc).norm();
         const real_t c = (va - vb).norm();
 
-        // incircle radius
-        // see https://en.wikipedia.org/wiki/Incircle_and_excircles_of_a_triangle
-        const real_t s = (a + b + c) / 2;
-        const real_t in_radius = std::sqrt((s - a) * (s - b) * (s - c) / s);
+        const real_t cos_a = std::clamp((va - vb).dot(vc - vb) / (a * c), -1.0, 1.0);
+        const real_t cos_b = std::clamp((vb - va).dot(vc - va) / (b * c), -1.0, 1.0);
+        const real_t alpha = std::acos(cos_a);
+        const real_t beta = std::acos(cos_b);
 
-        // circumcircle radius
-        // see https://en.wikipedia.org/wiki/Circumscribed_circle
-        const real_t cos_a = ((vb - va) / c).dot((vc - va) / b);
-        const real_t sin_a = std::sqrt(1 - cos_a * cos_a);
-        const real_t out_radius = 0.5 * a / sin_a;
+        const real_t sin_a = std::sin(alpha);
+        const real_t sin_b = std::sin(beta);
+        const real_t sin_ab = std::sin(alpha + beta);
 
-        if (std::isnan(in_radius)) {
-            std::cout << "nan" << std::endl;
-            continue;
+        if (alpha == 0 || alpha == PI || beta == 0 || beta == PI) {
+            quality.push_back(0);
+        } else {
+            const real_t rr = (sin_a + sin_b + sin_ab) / (2 * sin_a * sin_b * sin_ab);
+            quality.push_back(2 / rr);
         }
-        if (sin_a == 0) {
-            std::cout << "sin" << std::endl;
-            continue;
-        }
-        if (!std::isfinite(out_radius)) {
-            std::cout << "inf" << std::endl;
-            continue;
-        }
-
-        quality.push_back(2 * in_radius / out_radius);
     }
 
+    return quality;
+}
+
+std::vector<real_t> computeShapeRegularity(const Mesh& mesh) {
+    std::vector<real_t> quality;
+
+    for (const auto& fh : mesh.faces()) {
+
+        // vertices
+        const vec2_t& va = toVec2(mesh.point(fh.halfedge().from()));
+        const vec2_t& vb = toVec2(mesh.point(fh.halfedge().to()));
+        const vec2_t& vc = toVec2(mesh.point(fh.halfedge().next().to()));
+
+        // edge lengths
+        const real_t a = (vb - vc).norm();
+        const real_t b = (va - vc).norm();
+        const real_t c = (va - vb).norm();
+
+        const real_t l_rms_sqr = a * a + b * b + c * c;
+        const real_t signed_area = toVec3(vb - va).cross(toVec3(vc - va))[2] / 2;
+
+        quality.push_back(4 * std::sqrt(3) * signed_area / l_rms_sqr);
+    }
     return quality;
 }
 
