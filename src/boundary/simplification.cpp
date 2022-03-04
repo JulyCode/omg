@@ -7,9 +7,10 @@
 
 namespace omg {
 
-static const real_t SMALLEST_ANGLE_COS = std::cos(toRadians(15.0));
+static std::size_t collapse(HEPolygon& poly, const SizeFunction& size, real_t min_angle_deg) {
 
-static std::size_t collapse(HEPolygon& poly, const SizeFunction& size) {
+    const real_t min_angle_cos = std::cos(toRadians(min_angle_deg));
+
     std::size_t count = 0;
     for (HEPolygon::HalfEdgeHandle heh : poly.halfEdges()) {
 
@@ -29,7 +30,7 @@ static std::size_t collapse(HEPolygon& poly, const SizeFunction& size) {
         remove |= degreesToMeters((p3 - p1).norm()) < 1;  // TODO: use geoDistance?
 
         // remove small angles
-        remove |= (p1 - p2).normalized().dot((p3 - p2).normalized()) > SMALLEST_ANGLE_COS;
+        remove |= (p1 - p2).normalized().dot((p3 - p2).normalized()) > min_angle_cos;
 
         if (remove) {
             poly.collapse(heh, 0);
@@ -39,8 +40,8 @@ static std::size_t collapse(HEPolygon& poly, const SizeFunction& size) {
     return count;
 }
 
-void simplifyPolygon(HEPolygon& poly, const SizeFunction& size) {
-    while (collapse(poly, size) != 0) {}
+void simplifyPolygon(HEPolygon& poly, const SizeFunction& size, real_t min_angle_deg) {
+    while (collapse(poly, size, min_angle_deg) != 0) {}
 }
 
 

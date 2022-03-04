@@ -21,7 +21,7 @@ Boundary::Boundary(const BathymetryData& data, const LineGraph& poly, const Size
     convertToRegion(poly);
 }
 
-void Boundary::generate(real_t height, bool simplify) {
+void Boundary::generate(real_t height, bool ignore_islands, bool simplify, real_t min_angle_deg) {
     this->height = height;
 
     LineGraph coast = marchingQuads(data, height);
@@ -65,11 +65,11 @@ void Boundary::generate(real_t height, bool simplify) {
     }
 
     // find and remove the outer polygon
-    // special case: region polygon is completely on water
+    // special case: region polygon is completely on water (below boundary height)
     const vec2_t& first_corner = region.startPoint(*region.halfEdges().begin());
     const bool is_water = data.getValue<real_t>(first_corner) < height;
 
-    // no intersections and one corner is below coast height
+    // no intersections and one corner is below boundary height
     if (num_intersections == 0 && is_water) {
         // region is outer boundary
         outer = region;
@@ -81,7 +81,7 @@ void Boundary::generate(real_t height, bool simplify) {
 
     // simplify outer
     if (simplify) {
-        omg::simplifyPolygon(outer, size);
+        omg::simplifyPolygon(outer, size, min_angle_deg);
         if (outer.isDegenerated()) {
             throw std::runtime_error("outer boundary is degenerated");
         }
@@ -89,7 +89,9 @@ void Boundary::generate(real_t height, bool simplify) {
     }
 
     islands.clear();
-    findIslands(cycles, simplify);
+    if (!ignore_islands) {
+        findIslands(cycles, simplify, min_angle_deg);
+    }
 }
 
 bool Boundary::hasIntersections() const {
@@ -420,7 +422,7 @@ std::size_t Boundary::findOuterPolygon(const std::vector<HEPolygon>& cycles) {
     return largest;
 }
 
-void Boundary::findIslands(std::vector<HEPolygon>& cycles, bool simplify) {
+void Boundary::findIslands(std::vector<HEPolygon>& cycles, bool simplify, real_t min_angle_deg) {
     ScopeTimer timer("Create holes");
 
     // move the islands to holes
@@ -444,7 +446,7 @@ void Boundary::findIslands(std::vector<HEPolygon>& cycles, bool simplify) {
             }
 
             if (simplify) {
-                omg::simplifyPolygon(c, size);
+                omg::simplifyPolygon(c, size, min_angle_deg);
 
                 if (c.isDegenerated()) {
                     continue;

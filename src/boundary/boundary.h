@@ -12,7 +12,7 @@ class Boundary {
 public:
     Boundary(const BathymetryData& data, const LineGraph& poly, const SizeFunction& size);
 
-    void generate(real_t height = 0, bool simplify = true);
+    void generate(real_t height = 0, bool ignore_islands = false, bool simplify = true, real_t min_angle_deg = 60);
 
     inline const HEPolygon& getOuter() const { return outer; }
     inline const std::vector<HEPolygon>& getIslands() const { return islands; }
@@ -56,7 +56,7 @@ private:
 
     std::size_t findOuterPolygon(const std::vector<HEPolygon>& cycles);
 
-    void findIslands(std::vector<HEPolygon>& cycles, bool simplify);
+    void findIslands(std::vector<HEPolygon>& cycles, bool simplify, real_t min_angle_deg);
 };
 
 }
