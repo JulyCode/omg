@@ -32,10 +32,11 @@ struct Resolution {
 
 class ReferenceSize : public SizeFunction {
 public:
-    ReferenceSize(const BathymetryData& data, const Resolution& resolution);
+    ReferenceSize(const BathymetryData& data, const Resolution& resolution, real_t coast_height = 0);
 
 private:
-    real_t calculateSize(const size2_t& idx, const BathymetryData& data, const Resolution& res) const;
+    real_t calculateSize(const size2_t& idx, const BathymetryData& data, const Resolution& res,
+                         real_t coast_height) const;
 };
 
 }

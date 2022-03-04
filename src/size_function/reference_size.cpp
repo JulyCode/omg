@@ -31,7 +31,7 @@ real_t AreaOfInterest::blendResolution(real_t current_resolution, const vec2_t& 
 }
 
 
-ReferenceSize::ReferenceSize(const BathymetryData& data, const Resolution& resolution)
+ReferenceSize::ReferenceSize(const BathymetryData& data, const Resolution& resolution, real_t coast_height)
     : SizeFunction(data.getBoundingBox(), data.getGridSize()) {
 
     max = metersToDegrees(resolution.coarsest);
@@ -43,15 +43,16 @@ ReferenceSize::ReferenceSize(const BathymetryData& data, const Resolution& resol
         for (std::size_t j = 0; j < grid_size[1]; j++) {
 
             const size2_t idx(i, j);
-            grid(idx) = calculateSize(idx, data, resolution);
+            grid(idx) = calculateSize(idx, data, resolution, coast_height);
         }
     }
 }
 
-real_t ReferenceSize::calculateSize(const size2_t& idx, const BathymetryData& data, const Resolution& res) const {
+real_t ReferenceSize::calculateSize(const size2_t& idx, const BathymetryData& data, const Resolution& res,
+                                    real_t coast_height) const {
 
     const vec2_t position = getPoint(idx);
-    real_t depth = -static_cast<real_t>(data.grid(idx));
+    real_t depth = -static_cast<real_t>(data.grid(idx)) + coast_height;
     const real_t gradient = data.computeGradient(idx).norm() / degreesToMeters(1.0);
 
     // code from reference
