@@ -13,6 +13,7 @@
 #include <io/bin32_reader.h>
 #include <io/csv_writer.h>
 #include <io/nc_reader.h>
+#include <io/nod2d_writer.h>
 #include <io/off_writer.h>
 #include <io/poly_reader.h>
 #include <io/vtk_writer.h>
