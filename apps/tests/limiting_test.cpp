@@ -5,7 +5,7 @@
 int main() {
     omg::ScopeTimer timer("Mesh generation");
 
-    const std::string DIR = "../../apps/data/";
+    const std::string DIR = "../../../apps/data/";
 
     const omg::AxisAlignedBoundingBox gibraltar = {{-6.23, 35.68}, {-5.12, 36.29}};
     const omg::AxisAlignedBoundingBox crete = {{22.86, 34.29}, {26.63, 36.07}};

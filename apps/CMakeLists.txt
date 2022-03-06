@@ -1,12 +1,7 @@
 
-add_executable(Test main.cpp)
+option(OMG_BUILD_TESTS "Build test programs" ON)
 
-target_link_libraries(Test PRIVATE OMG)
-
-add_executable(CreateStats create_stats.cpp)
-
-target_link_libraries(CreateStats PRIVATE OMG)
-
-add_executable(LimitingTest limiting_test.cpp)
-
-target_link_libraries(LimitingTest PRIVATE OMG)
+if (OMG_BUILD_TESTS)
+    message(STATUS "Building OMG tests...")
+    add_subdirectory(tests)
+endif ()

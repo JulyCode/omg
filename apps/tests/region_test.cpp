@@ -5,7 +5,7 @@
 int main() {
     omg::ScopeTimer timer("Mesh generation");
 
-    const std::string DIR = "../../apps/data/";
+    const std::string DIR = "../../../apps/data/";
 
     const omg::AxisAlignedBoundingBox indian_ocean = {{20, -60}, {130, 40}};
     const omg::AxisAlignedBoundingBox baltic_sea = {{9, 53.5}, {31, 66}};
@@ -23,10 +23,10 @@ int main() {
         {{11.7, 54}, {14.5, 53.8}, {17.2, 54.5}, {16.5, 55.5}, {14.6, 56.2}, {12, 55.6}}));
 
     const omg::LineGraph& poly = poly_medsea;
-    omg::io::writeLegacyVTK(DIR + "poly.vtk", poly);
+    // omg::io::writeLegacyVTK(DIR + "poly.vtk", poly);
 
     omg::BathymetryData topo = omg::io::readNetCDF(DIR + "GEBCO_2020.nc", poly.computeBoundingBox());
-    omg::io::writeLegacyVTK(DIR + "bathymetry.vtk", topo);
+    // omg::io::writeLegacyVTK(DIR + "bathymetry.vtk", topo);
 
     omg::Resolution resolution_medsea;
     resolution_medsea.coarsest = 20000;
@@ -69,18 +69,9 @@ int main() {
 
     omg::ReferenceSize sf(topo, resolution_medsea);
 
-    class TestSize : public omg::SizeFunction {
-    public:
-        TestSize() : omg::SizeFunction({{-1, -1}, {1, 1}}, {101, 101}) {
-            std::fill(grid().begin(), grid().end(), 1);
-            grid(50, 50) = 0;
-        }
-    };
-    //TestSize sf;
-
     //omg::io::writeLegacyVTK(DIR + "size_fkt.vtk", sf, true);
 
-    omg::fastGradientLimiting(sf, 0.3);
+    //omg::fastGradientLimiting(sf, 0.3);
 
     //omg::io::writeLegacyVTK(DIR + "size_fkt_limited.vtk", sf, true);
 
@@ -96,7 +87,7 @@ int main() {
     //return 0;
 
     omg::Boundary coast(topo, poly, sf);
-    coast.generate();
+    coast.generate(100, false, true, 120);
     //omg::io::writeLegacyVTK(DIR + "outer.vtk", omg::LineGraph(coast.getOuter()));
 
     if (coast.hasIntersections()) {
@@ -113,11 +104,13 @@ int main() {
     std::cout << "triangles: " << mesh.n_faces() << std::endl;
 
     omg::io::writeLegacyVTK(DIR + "tri_mesh.vtk", mesh);
+    omg::io::writeNod2D(mesh, topo);
 
     omg::IsotropicRemeshing ir(sf);
     ir.remesh(mesh, 20);
 
     omg::io::writeLegacyVTK(DIR + "remesh.vtk", mesh);
+    omg::io::writeNod2D(mesh, topo, DIR + "remesh");
 
     mesh = omg::Mesh();
     jig.generateMesh(coast, sf, mesh);

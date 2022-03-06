@@ -2,7 +2,7 @@
 
 #include <omg.h>
 
-const std::string DIR = "../../apps/data/";
+const std::string DIR = "../../../apps/data/";
 
 void addDataToCSV(omg::io::CSVTable& table, const std::string& name, const omg::Mesh& mesh, const omg::SizeFunction& sf) {
 
