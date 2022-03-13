@@ -402,7 +402,7 @@ std::size_t Boundary::findOuterPolygon(const std::vector<HEPolygon>& cycles) {
     for (std::size_t i = 0; i < cycles.size(); i++) {
 
         // skip polygons enclosing land
-        if (!enclosesWater(cycles[i])) {
+        if (!enclosesWater(cycles[i], cycles)) {
             continue;
         }
 
@@ -425,14 +425,15 @@ std::size_t Boundary::findOuterPolygon(const std::vector<HEPolygon>& cycles) {
 void Boundary::findIslands(std::vector<HEPolygon>& cycles, bool simplify, real_t min_angle_deg) {
     ScopeTimer timer("Create holes");
 
-    // move the islands to holes
-    std::mutex hole_mutex;
+    // move the islands
+    std::mutex mutex;
+    std::vector<std::size_t> indices;
 
     #pragma omp parallel for
     for (std::size_t i = 0; i < cycles.size(); i++) {
         HEPolygon& c = cycles[i];
 
-        if (!enclosesWater(c)) {
+        if (!enclosesWater(c, cycles)) {
 
             PointInPolygon pip = OUTSIDE;
             for (HEPolygon::VertexHandle vh : c.vertices()) {
@@ -454,14 +455,17 @@ void Boundary::findIslands(std::vector<HEPolygon>& cycles, bool simplify, real_t
                 c.garbageCollect();
             }
 
-            const std::lock_guard lock(hole_mutex);
-            islands.push_back(std::move(c));
+            const std::lock_guard lock(mutex);
+            indices.push_back(i);
         }
+    }
+
+    for (std::size_t i : indices) {
+        islands.push_back(std::move(cycles[i]));
     }
 }
 
-bool Boundary::enclosesWater(const HEPolygon& poly) const {
-    // TODO: still not completely working, tiny lakes are not correctly identified
+bool Boundary::enclosesWater(const HEPolygon& poly, const std::vector<HEPolygon>& cycles) const {
     // test if the polygon surrounds water or land
 
     for (HEPolygon::HalfEdgeHandle heh : poly.halfEdges()) {
@@ -485,8 +489,28 @@ bool Boundary::enclosesWater(const HEPolygon& poly) const {
         }
         return decider < 0;
     }
-    std::cout << "warning: cannot determine if polygon encloses water" << std::endl;
-    return false;
+
+    // gradient based method failed, try other method
+
+    const vec2_t some_point = poly.point(*poly.vertices().begin());
+    std::size_t counter = 0;
+
+    // count how many polygons surround this one
+    for (const HEPolygon& other : cycles) {
+        if (&other == &poly) {
+            continue;
+        }
+
+        auto res = other.pointInPolygon(some_point);
+        if (res == ON_EDGE) {
+            std::cout << "warning: cannot determine if polygon encloses water" << std::endl;
+            return false;
+        }
+        if (res == INSIDE) {
+            counter++;
+        }
+    }
+    return counter % 2 == 0;
 }
 
 }

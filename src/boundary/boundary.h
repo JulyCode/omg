@@ -52,7 +52,7 @@ private:
 
     std::vector<HEPolygon> findCycles(const LineGraph& coast, const AdjacencyList& adjacency) const;
 
-    bool enclosesWater(const HEPolygon& poly) const;
+    bool enclosesWater(const HEPolygon& poly, const std::vector<HEPolygon>& cycles) const;
 
     std::size_t findOuterPolygon(const std::vector<HEPolygon>& cycles);
 
