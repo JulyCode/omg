@@ -1,4 +1,7 @@
 
+add_executable(MedseaTest medsea_test.cpp)
+target_link_libraries(MedseaTest PRIVATE OMG)
+
 add_executable(RegionTest region_test.cpp)
 target_link_libraries(RegionTest PRIVATE OMG)
 

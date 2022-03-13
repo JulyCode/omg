@@ -16,17 +16,18 @@ int main() {
     const omg::AxisAlignedBoundingBox bosporus = {{28.83, 40.96}, {29.21, 41.25}};
     const omg::AxisAlignedBoundingBox crete = {{22.86, 34.29}, {26.63, 36.07}};
     const omg::AxisAlignedBoundingBox nile = {{31.82, 25.99}, {32.31, 26.41}};  // res 4100, height 66
-    omg::LineGraph poly_box = omg::LineGraph::createRectangle(indian_ocean);
+    const omg::AxisAlignedBoundingBox fiji = {{176.5, -19.5}, {179.998, -15.5}};
+    omg::LineGraph poly_box = omg::LineGraph::createRectangle(fiji);
 
     const omg::LineGraph poly_medsea = omg::io::readPoly(DIR + "medsea.poly");
     const omg::LineGraph poly_south_baltic(omg::HEPolygon(
         {{11.7, 54}, {14.5, 53.8}, {17.2, 54.5}, {16.5, 55.5}, {14.6, 56.2}, {12, 55.6}}));
 
-    const omg::LineGraph& poly = poly_medsea;
+    const omg::LineGraph& poly = poly_box;
     // omg::io::writeLegacyVTK(DIR + "poly.vtk", poly);
 
     omg::BathymetryData topo = omg::io::readNetCDF(DIR + "GEBCO_2020.nc", poly.computeBoundingBox());
-    // omg::io::writeLegacyVTK(DIR + "bathymetry.vtk", topo);
+    omg::io::writeLegacyVTK(DIR + "bathymetry.vtk", topo);
 
     omg::Resolution resolution_medsea;
     resolution_medsea.coarsest = 20000;
@@ -75,19 +76,8 @@ int main() {
 
     //omg::io::writeLegacyVTK(DIR + "size_fkt_limited.vtk", sf, true);
 
-    /*std::vector<omg::real_t> grad_norm = omg::analysis::computeGradientNorm(sf, omg::analysis::Norm::EUCLIDEAN);
-    omg::analysis::Aggregates<omg::real_t> grad(grad_norm.begin(), grad_norm.end());
-    std::cout << grad.min << ", " << grad.max << ", " << grad.avg << std::endl;
-
-    grad_norm = omg::analysis::computeGradientNorm(sf, omg::analysis::Norm::MAXIMUM);
-    grad = omg::analysis::Aggregates<omg::real_t>(grad_norm.begin(), grad_norm.end());
-    std::cout << grad.min << ", " << grad.max << ", " << grad.avg << std::endl;*/
-
-    //omg::io::writeLegacyVTK(DIR + "size_limited.vtk", sf, true);
-    //return 0;
-
     omg::Boundary coast(topo, poly, sf);
-    coast.generate(100, false, true, 120);
+    coast.generate(0, false, true, 60);
     //omg::io::writeLegacyVTK(DIR + "outer.vtk", omg::LineGraph(coast.getOuter()));
 
     if (coast.hasIntersections()) {
