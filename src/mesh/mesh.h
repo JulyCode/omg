@@ -36,6 +36,11 @@ public:
 		    data(v).marked = false;
 	    }
     }
+
+    void removeSeparatedSubmeshes();
+
+private:
+    real_t faceArea(const OpenMesh::SmartFaceHandle& fh) const;
 };
 
 }
