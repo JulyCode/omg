@@ -16,7 +16,7 @@ int main() {
     const omg::AxisAlignedBoundingBox bosporus = {{28.83, 40.96}, {29.21, 41.25}};
     const omg::AxisAlignedBoundingBox crete = {{22.86, 34.29}, {26.63, 36.07}};
     const omg::AxisAlignedBoundingBox nile = {{31.82, 25.99}, {32.31, 26.41}};  // res 4100, height 66
-    const omg::AxisAlignedBoundingBox fiji = {{176.5, -19.5}, {179.998, -15.5}};
+    const omg::AxisAlignedBoundingBox fiji = {{176.5, -19.5}, {182.5, -15.5}};
     omg::LineGraph poly_box = omg::LineGraph::createRectangle(fiji);
 
     const omg::LineGraph poly_medsea = omg::io::readPoly(DIR + "medsea.poly");
@@ -94,13 +94,13 @@ int main() {
     std::cout << "triangles: " << mesh.n_faces() << std::endl;
 
     omg::io::writeLegacyVTK(DIR + "tri_mesh.vtk", mesh);
-    omg::io::writeNod2D(mesh, topo);
+    //omg::io::writeNod2D(mesh, topo);
 
     omg::IsotropicRemeshing ir(sf);
     ir.remesh(mesh, 20);
 
     omg::io::writeLegacyVTK(DIR + "remesh.vtk", mesh);
-    omg::io::writeNod2D(mesh, topo, DIR + "remesh");
+    //omg::io::writeNod2D(mesh, topo, DIR + "remesh");
 
     mesh = omg::Mesh();
     jig.generateMesh(coast, sf, mesh);

@@ -2,11 +2,14 @@
 #include "nc_reader.h"
 
 #include <netcdf>
+#include <functional>
 
 namespace omg {
 namespace io {
 
 static const AxisAlignedBoundingBox EVERYTHING;
+static const real_t MAX_LON_COORD = 180;
+static const real_t MIN_LON_COORD = -180;
 
 static bool startsWith(const std::string& str, const std::string& expr) {
     if (str.size() < expr.size()) {
@@ -165,10 +168,14 @@ static void getIndicesToRead(size2_t& from_idx, size2_t& to_idx, const DataHandl
 
     // only read the part according to aabb
     if (&data.aabb != &EVERYTHING) {
-        from_idx[0] = getClosestIndexBelow(data.longitude, data.aabb.min[0]);
+        if (data.aabb.min[0] != MIN_LON_COORD) {
+            from_idx[0] = getClosestIndexBelow(data.longitude, data.aabb.min[0]);
+        }
         from_idx[1] = getClosestIndexBelow(data.latitude, data.aabb.min[1]);
 
-        to_idx[0] = getClosestIndexBelow(data.longitude, data.aabb.max[0]) + 2;  // + 2 to get above and exclusive
+        if (data.aabb.max[0] != MAX_LON_COORD) {
+            to_idx[0] = getClosestIndexBelow(data.longitude, data.aabb.max[0]) + 2;  // + 2 to get above and exclusive
+        }
         to_idx[1] = getClosestIndexBelow(data.latitude, data.aabb.max[1]) + 2;
     }
 }
@@ -276,6 +283,25 @@ static BathymetryData readGEBCO08(const netCDF::NcFile& data_file, const AxisAli
 }
 
 
+static void concatBathymetry(BathymetryData& dst, const BathymetryData& low, const BathymetryData& high) {
+    const std::size_t low_stride = low.getGridSize()[0];
+    const std::size_t high_stride = high.getGridSize()[0];
+    const std::size_t dst_stride = dst.getGridSize()[0];
+
+    const std::size_t rows = dst.getGridSize()[1];
+    auto low_it = low.grid().begin();
+    auto high_it = high.grid().begin();
+    auto dst_it = dst.grid().begin();
+
+    for (std::size_t y = 0; y < rows; y++) {
+        dst_it = std::copy(low_it, low_it + low_stride, dst_it);
+        low_it += low_stride;
+        dst_it = std::copy(high_it, high_it + high_stride, dst_it);
+        high_it += high_stride;
+    }
+}
+
+
 BathymetryData readNetCDF(const std::string& filename) {
     return readNetCDF(filename, EVERYTHING);
 }
@@ -295,13 +321,52 @@ BathymetryData readNetCDF(const std::string& filename, const AxisAlignedBounding
         attribute.getValues(title);
 
         // select reader to use
+        std::function<BathymetryData(const netCDF::NcFile&, const AxisAlignedBoundingBox&)> reader;
         if (startsWith(title, "The GEBCO_2020 Grid")) {
-            return readGEBCO20(data_file, aabb);
+            reader = readGEBCO20;
         } else if (startsWith(title, "GEBCO_08 TOPOGRAPHY")) {
-            return readGEBCO08(data_file, aabb);
+            reader = readGEBCO08;
         } else {
             throw std::runtime_error("This file format is not supported");
         }
+
+        // check if (-180, 180) or (0, 360) is used for lon
+        if (&aabb == &EVERYTHING || aabb.max[0] < MAX_LON_COORD) {
+            return reader(data_file, aabb);
+        }
+        if (aabb.min[0] > MAX_LON_COORD && aabb.max[0] > MAX_LON_COORD) {
+            AxisAlignedBoundingBox mod_aabb = aabb;
+            mod_aabb.min[0] = mod_aabb.min[0] - 2 * MAX_LON_COORD;
+            mod_aabb.max[0] = mod_aabb.max[0] - 2 * MAX_LON_COORD;
+
+            BathymetryData mod_data = reader(data_file, mod_aabb);
+            mod_aabb = mod_data.getBoundingBox();
+            mod_aabb.min[0] = mod_aabb.min[0] + 2 * MAX_LON_COORD;
+            mod_aabb.max[0] = mod_aabb.max[0] + 2 * MAX_LON_COORD;
+
+            BathymetryData data(mod_aabb, mod_data.getGridSize());
+            data.grid() = std::move(mod_data.grid());
+            return data;
+        }
+        if (aabb.min[0] < MAX_LON_COORD && aabb.max[0] > MAX_LON_COORD) {
+            AxisAlignedBoundingBox mod_aabb = aabb;
+            mod_aabb.max[0] = MAX_LON_COORD;
+            const BathymetryData low_data = reader(data_file, mod_aabb);
+
+            mod_aabb = aabb;
+            mod_aabb.min[0] = MIN_LON_COORD;
+            mod_aabb.max[0] = mod_aabb.max[0] - 2 * MAX_LON_COORD;
+            const BathymetryData high_data = reader(data_file, mod_aabb);
+
+            const size2_t grid_size(low_data.getGridSize()[0] + high_data.getGridSize()[0], low_data.getGridSize()[1]);
+            mod_aabb = low_data.getBoundingBox();
+            mod_aabb.max[0] = high_data.getBoundingBox().max[0] + 2 * MAX_LON_COORD;
+
+            BathymetryData data(mod_aabb, grid_size);
+            concatBathymetry(data, low_data, high_data);
+            return data;
+        }
+        throw std::runtime_error("Invalid bounding box");
 
     } catch(netCDF::exceptions::NcException& e) {
         throw std::runtime_error("Error reading data from " + filename + ": " + e.what());
