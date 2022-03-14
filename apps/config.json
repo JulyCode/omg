@@ -1,0 +1,111 @@
+{
+    "comment": [
+        "This is a configuration file used for omg_cmd. It contains:",
+        "poly_region: the region the ocean mesh is generated for",
+        "netcdf_bathymetry: path to a netcdf file containing bathymetric data of the region",
+        "sea_level (optional): height of the water level relative to the value 0 in the bathymetry data, default is 0",
+        "resolution: settings to control the detail of the mesh",
+        "gradient_limiting (optional): settings for size function gradient limiting",
+        "boundary: settings to control the boundary of the mesh",
+        "triangulator: triangulation method used to create the mesh, can be 'triangle' or 'jigsaw'",
+        "remeshing_iterations (optional): number of mesh optimisation iterations, only used with 'triangle' triangulator, default is 0",
+        "output: settings for the output files"
+    ],
+
+    "poly_region": {
+        "comment": [
+            "Contains settings about the region:",
+            "type: can be 'file' to load a poly file from the 'path' attribute or can be 'rectangle' using the 'min' and 'max' attributes",
+            "path (required for 'file'): path to the poly file containing the region",
+            "min (required for 'rectangle'): lower pair of coordinates to specify a bounding box as region",
+            "max (required for 'rectangle'): higher pair of coordinates to specify a bounding box as region"
+        ],
+
+        "type": "file",
+        "path": "../../apps/data/medsea.poly",
+        "min": [
+            9.0, 53.5
+        ],
+        "max": [
+            31.0, 66.0
+        ]
+    },
+
+    "netcdf_bathymetry": "../../apps/data/GEBCO_2020.nc",
+
+    "sea_level": 0.0,
+
+    "resolution": {
+        "comment": [
+            "Contains settings about the detail of the mesh:",
+            "coarsest: largest element size",
+            "coastal: element size at the coast",
+            "finest: smallest element size allowed",
+            "aois (optional): list of areas of interest given by the center coordinates,",
+                "the inner radius with a smaller element size and the outer radius for blending with the surrounding elements"
+        ],
+
+        "coarsest": 20000,
+        "coastal": 5000,
+        "finest": 1000,
+
+        "aoi": [
+            {
+                "center_pos": [
+                    25.14, 35.335
+                ],
+                "inner_radius": 0.2,
+                "outer_radius": 0.5,
+                "element_size": 1000
+            }
+        ]
+    },
+
+    "gradient_limiting": {
+        "comment": [
+            "Contains settings about size function gradient limiting:",
+            "method: method used for gradient limiting, can be 'omg', 'marche' or 'none'",
+            "limit (required for 'omg' and 'marche'): limit for the size function gradient"
+        ],
+
+        "method": "omg",
+        "limit": 0.3
+    },
+
+    "boundary": {
+        "comment": [
+            "Contains settings for the mesh boundary creation:",
+            "height: the height of the boundary relative to the value 0 in the bathymetry data, can be different from 'sea_level' to include land in the mesh",
+            "ignore_islands (optional): do not cut holes in the mesh to represent islands, default is false",
+            "min_angle (optional): remove angles smaller than this value from the boundary, default is 60 degrees",
+            "allow_self_intersection (optional): allows the boundary to intersect itself, if false exit with an error, default is false"
+        ],
+
+        "height": 0.0,
+        "ignore_islands": false,
+        "min_angle": 60.0,
+        "allow_self_intersection": false
+    },
+
+    "triangulator": "jigsaw",
+
+    "remeshing_iterations": 0,
+    
+    "output": {
+        "comment": [
+            "Contains settings for output files:",
+            "mesh_file_format: file format the resulting mesh is saved in, can be 'vtk', 'off' or 'nod2d'",
+            "mesh_destination (optional): path the mesh file will be saved to, if omitted the local directory is used",
+            "save_bathymetry (optional): save the used section of the bathymetry data to a .vtk file at this path, default is '' to not save it",
+            "save_size_function (optional): save the size function to a .vtk file at this path, default is '' to not save it",
+            "save_boundary (optional): save the boundary to a .vtk file at this path, default is '' to not save it"
+        ],
+
+        "mesh_file_format": "vtk",
+        "mesh_file_path": "../../apps/data/out_mesh.vtk",
+
+        "save_bathymetry": "",
+        "save_size_function": "",
+        "save_boundary": ""
+    }
+}
