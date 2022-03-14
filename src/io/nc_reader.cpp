@@ -286,7 +286,6 @@ static BathymetryData readGEBCO08(const netCDF::NcFile& data_file, const AxisAli
 static void concatBathymetry(BathymetryData& dst, const BathymetryData& low, const BathymetryData& high) {
     const std::size_t low_stride = low.getGridSize()[0];
     const std::size_t high_stride = high.getGridSize()[0];
-    const std::size_t dst_stride = dst.getGridSize()[0];
 
     const std::size_t rows = dst.getGridSize()[1];
     auto low_it = low.grid().begin();

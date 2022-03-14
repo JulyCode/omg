@@ -50,7 +50,8 @@ inline real_t geoDistance(const vec2_t& p1, const vec2_t& p2) {
 class ScopeTimer {
     using TimePoint = std::chrono::_V2::system_clock::time_point;
 public:
-    ScopeTimer() : ScopeTimer("Duration") {}
+    ScopeTimer() : start(std::chrono::high_resolution_clock::now()), msg("Duration") {}
+
     explicit ScopeTimer(const std::string& msg) : start(std::chrono::high_resolution_clock::now()), msg(msg) {
         std::cout << msg << "..." << std::endl;
     }
