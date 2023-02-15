@@ -1,5 +1,5 @@
 
-#include "boundary.h"
+#include "boundary_generator.h"
 
 #include <iostream>
 #include <mutex>
@@ -14,15 +14,17 @@
 
 namespace omg {
 
-Boundary::Boundary(const BathymetryData& data, const LineGraph& poly, const SizeFunction& size)
+BoundaryGenerator::BoundaryGenerator(const BathymetryData& data, const LineGraph& poly, const SizeFunction& size)
     : data(data), size(size) {
 
     // convert LineGraph to region HEPolygon
     convertToRegion(poly);
 }
 
-void Boundary::generate(real_t height, bool ignore_islands, bool simplify, real_t min_angle_deg) {
+Boundary BoundaryGenerator::generate(real_t height, bool ignore_islands, bool simplify, real_t min_angle_deg) {
     this->height = height;
+
+    Boundary boundary;
 
     LineGraph coast = marchingQuads(data, height);
     coast.removeDegeneratedGeometry();
@@ -69,6 +71,7 @@ void Boundary::generate(real_t height, bool ignore_islands, bool simplify, real_
     const vec2_t& first_corner = region.startPoint(*region.halfEdges().begin());
     const bool is_water = data.getValue<real_t>(first_corner) < height;
 
+    HEPolygon outer;
     // no intersections and one corner is below boundary height
     if (num_intersections == 0 && is_water) {
         // region is outer boundary
@@ -88,24 +91,16 @@ void Boundary::generate(real_t height, bool ignore_islands, bool simplify, real_
         outer.garbageCollect();
     }
 
-    islands.clear();
+    boundary.setOuter(std::move(outer));
+
     if (!ignore_islands) {
-        findIslands(cycles, simplify, min_angle_deg);
+        findIslands(boundary, cycles, simplify, min_angle_deg);
     }
+
+    return boundary;
 }
 
-bool Boundary::hasIntersections() const {
-    ScopeTimer timer("Has intersections");
-
-    std::vector<HEPolygon> polys = islands;
-    polys.push_back(outer);
-
-    omg::LineGraph complete = LineGraph::combinePolygons(polys);
-
-    return complete.hasSelfIntersection();
-}
-
-void Boundary::convertToRegion(const LineGraph& poly) {
+void BoundaryGenerator::convertToRegion(const LineGraph& poly) {
     ScopeTimer timer("Convert region");
 
     // check for self-intersections
@@ -129,7 +124,7 @@ void Boundary::convertToRegion(const LineGraph& poly) {
     region = std::move(cycles[0]);
 }
 
-void Boundary::computeIntersections(const LineGraph& coast, IntersectionList& intersections) const {
+void BoundaryGenerator::computeIntersections(const LineGraph& coast, IntersectionList& intersections) const {
     // TODO: special cases
     ScopeTimer timer("Compute intersections");
 
@@ -207,7 +202,7 @@ void Boundary::computeIntersections(const LineGraph& coast, IntersectionList& in
     }
 }
 
-void Boundary::clampToRegion(LineGraph& coast, AdjacencyList& adjacency, const IntersectionList& intersections) const {
+void BoundaryGenerator::clampToRegion(LineGraph& coast, AdjacencyList& adjacency, const IntersectionList& intersections) const {
 
     // get first region corner
     const vec2_t& first_corner = region.startPoint(*region.halfEdges().begin());
@@ -271,7 +266,7 @@ void Boundary::clampToRegion(LineGraph& coast, AdjacencyList& adjacency, const I
     }
 }
 
-Boundary::Intersection Boundary::getNextIntersection(const IntersectionList& intersections,
+BoundaryGenerator::Intersection BoundaryGenerator::getNextIntersection(const IntersectionList& intersections,
                                                      HEPolygon::HalfEdgeHandle heh, std::size_t intersection_idx,
                                                      std::vector<vec2_t>& corners) const {
 
@@ -295,7 +290,7 @@ Boundary::Intersection Boundary::getNextIntersection(const IntersectionList& int
     throw std::runtime_error("no next intersection found");
 }
 
-void Boundary::cutEdge(LineGraph& coast, AdjacencyList& adjacency, EHandle edge, VHandle cut) const {
+void BoundaryGenerator::cutEdge(LineGraph& coast, AdjacencyList& adjacency, EHandle edge, VHandle cut) const {
     // adjust adjacency list
     // throw vertex outside away and update the vertex inside
 
@@ -326,7 +321,7 @@ void Boundary::cutEdge(LineGraph& coast, AdjacencyList& adjacency, EHandle edge,
     adjacency.get(cut).push_back(e);
 }
 
-std::vector<HEPolygon> Boundary::findCycles(const LineGraph& coast, const AdjacencyList& adjacency) const {
+std::vector<HEPolygon> BoundaryGenerator::findCycles(const LineGraph& coast, const AdjacencyList& adjacency) const {
     ScopeTimer timer("Find cycles");
 
     std::vector<HEPolygon> cycles;
@@ -387,7 +382,7 @@ std::vector<HEPolygon> Boundary::findCycles(const LineGraph& coast, const Adjace
     return cycles;
 }
 
-std::size_t Boundary::findOuterPolygon(const std::vector<HEPolygon>& cycles) {
+std::size_t BoundaryGenerator::findOuterPolygon(const std::vector<HEPolygon>& cycles) {
     // TODO: fix error, when smaller lake is selected
     if (cycles.empty()) {
         throw std::runtime_error("cycles is empty");
@@ -422,7 +417,7 @@ std::size_t Boundary::findOuterPolygon(const std::vector<HEPolygon>& cycles) {
     return largest;
 }
 
-void Boundary::findIslands(std::vector<HEPolygon>& cycles, bool simplify, real_t min_angle_deg) {
+void BoundaryGenerator::findIslands(Boundary& boundary, std::vector<HEPolygon>& cycles, bool simplify, real_t min_angle_deg) {
     ScopeTimer timer("Create holes");
 
     // move the islands
@@ -437,7 +432,7 @@ void Boundary::findIslands(std::vector<HEPolygon>& cycles, bool simplify, real_t
 
             PointInPolygon pip = OUTSIDE;
             for (HEPolygon::VertexHandle vh : c.vertices()) {
-                pip = outer.pointInPolygon(c.point(vh));
+                pip = boundary.getOuter().pointInPolygon(c.point(vh));
                 if (pip != ON_EDGE) {
                     break;
                 }
@@ -461,11 +456,11 @@ void Boundary::findIslands(std::vector<HEPolygon>& cycles, bool simplify, real_t
     }
 
     for (std::size_t i : indices) {
-        islands.push_back(std::move(cycles[i]));
+        boundary.addIsland(std::move(cycles[i]));
     }
 }
 
-bool Boundary::enclosesWater(const HEPolygon& poly, const std::vector<HEPolygon>& cycles) const {
+bool BoundaryGenerator::enclosesWater(const HEPolygon& poly, const std::vector<HEPolygon>& cycles) const {
     // test if the polygon surrounds water or land
 
     for (HEPolygon::HalfEdgeHandle heh : poly.halfEdges()) {
