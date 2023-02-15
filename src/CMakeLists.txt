@@ -6,11 +6,11 @@ add_library(OMG ${SOURCES})
 target_link_libraries(OMG PRIVATE JRSTriangle)
 
 target_link_libraries(OMG PRIVATE Triangle::triangle-api)
-
 target_link_libraries(OMG PRIVATE jigsaw-lib)
 
-target_link_libraries(OMG PRIVATE OpenMeshCore)
+target_link_libraries(OMG PRIVATE ${OPENMESH_LIBRARIES})
 target_compile_definitions(OMG PUBLIC _USE_MATH_DEFINES OM_STATIC_BUILD)
+target_include_directories(OMG PRIVATE ${OPENMESH_INCLUDE_DIR})
 
 target_link_libraries(OMG PRIVATE netcdf-cxx4) # TODO: HDF is missing
 
