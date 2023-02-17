@@ -26,8 +26,8 @@ std::vector<real_t> computeRadiusRatio(const Mesh& mesh) {
         const real_t b = (va - vc).norm();
         const real_t c = (va - vb).norm();
 
-        const real_t cos_a = std::clamp((va - vb).dot(vc - vb) / (a * c), -1.0, 1.0);
-        const real_t cos_b = std::clamp((vb - va).dot(vc - va) / (b * c), -1.0, 1.0);
+        const real_t cos_a = std::clamp<real_t>((va - vb).dot(vc - vb) / (a * c), -1.0f, 1.0f);
+        const real_t cos_b = std::clamp<real_t>((vb - va).dot(vc - va) / (b * c), -1.0f, 1.0f);
         const real_t alpha = std::acos(cos_a);
         const real_t beta = std::acos(cos_b);
 

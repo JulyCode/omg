@@ -81,7 +81,7 @@ std::optional<real_t> lineIntersectionFactor(const LineSegment& l1, const LineSe
 
         if (length1 > length2) {
             const real_t avg_dist = ((l2.first + l2.second) / 2 - l1.first).sqrnorm();
-            return std::clamp(avg_dist / length1, 0.0, 1.0);
+            return std::clamp<real_t>(avg_dist / length1, 0.0f, 1.0f);
         } else {
             return 0.5;
         }

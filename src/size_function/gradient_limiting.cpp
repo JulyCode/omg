@@ -118,12 +118,12 @@ void simpleGradientLimiting(SizeFunction& size, real_t limit, real_t time_step, 
                 const real_t current = old_size->grid(idx);
 
                 vec2_t max = backwardDifference(*old_size, idx);
-                max[0] = std::max(max[0], 0.0);
-                max[1] = std::max(max[1], 0.0);
+                max[0] = std::max<real_t>(max[0], 0.0f);
+                max[1] = std::max<real_t>(max[1], 0.0f);
 
                 vec2_t min = forwardDifference(*old_size, idx);
-                min[0] = std::min(min[0], 0.0);
-                min[1] = std::min(min[1], 0.0);
+                min[0] = std::min<real_t>(min[0], 0.0f);
+                min[1] = std::min<real_t>(min[1], 0.0f);
 
                 const real_t grad = std::sqrt(max.dot(max) + min.dot(min));
 
@@ -415,12 +415,12 @@ void fastGradientLimiting(SizeFunction& size, real_t limit) {
             if (heap.isValid(handle)) {  // still in heap
 
                 vec2_t max = backwardDifference(size, idx);
-                max[0] = std::max(max[0], 0.0);
-                max[1] = std::max(max[1], 0.0);
+                max[0] = std::max<real_t>(max[0], 0.0f);
+                max[1] = std::max<real_t>(max[1], 0.0f);
 
                 vec2_t min = forwardDifference(size, idx);
-                min[0] = std::min(min[0], 0.0);
-                min[1] = std::min(min[1], 0.0);
+                min[0] = std::min<real_t>(min[0], 0.0f);
+                min[1] = std::min<real_t>(min[1], 0.0f);
 
                 const real_t grad = std::sqrt(max.dot(max) + min.dot(min));
 

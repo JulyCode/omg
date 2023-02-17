@@ -39,7 +39,7 @@ TriangleIn<io_t>::TriangleIn(const Boundary& boundary) {
 
     // initialize input triangulateio struct
     io.numberofpoints = points.size();
-    io.pointlist = new real_t[points.size() * 2];
+    io.pointlist = new double[points.size() * 2];
     // copy points
     for (std::size_t i = 0; i < points.size(); i++) {
         io.pointlist[i * 2 + 0] = points[i][0];
@@ -62,7 +62,7 @@ TriangleIn<io_t>::TriangleIn(const Boundary& boundary) {
     // create holes
     const std::vector<HEPolygon>& holes = boundary.getIslands();
     io.numberofholes = holes.size();
-    io.holelist = new real_t[io.numberofholes * 2];
+    io.holelist = new double[io.numberofholes * 2];
     for (int i = 0; i < io.numberofholes; i++) {
 
         // get a point inside the polygon
