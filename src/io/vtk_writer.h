@@ -12,7 +12,22 @@ void writeLegacyVTK(const std::string& filename, const ScalarField<T>& data, boo
 
 void writeLegacyVTK(const std::string& filename, const LineGraph& poly);
 
-void writeLegacyVTK(const std::string& filename, const Mesh& mesh);
+namespace internal {
+
+void writeLegacyVTK(const std::string& filename, const OpenMesh::PolyConnectivity& conn,
+					const std::function<std::string(OpenMesh::VertexHandle)>& point);
+}
+
+template<typename Traits>
+void writeLegacyVTK(const std::string& filename, const OpenMesh::TriMesh_ArrayKernelT<Traits>& mesh) {
+    auto point = [&mesh](OpenMesh::VertexHandle vh) {
+        auto p = mesh.point(vh);
+        std::stringstream ss;
+        ss << p[0] << " " << p[1] << " " << p[2];
+        return ss.str();
+    };
+    internal::writeLegacyVTK(filename, mesh, point);
+}
 
 }
 }

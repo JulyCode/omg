@@ -112,24 +112,25 @@ void writeLegacyVTK(const std::string& filename, const LineGraph& poly) {
 	file.close();
 }
 
-void writeLegacyVTK(const std::string& filename, const Mesh& mesh) {
+namespace internal {
+
+void writeLegacyVTK(const std::string& filename, const OpenMesh::PolyConnectivity& conn,
+					const std::function<std::string(OpenMesh::VertexHandle)>& point) {
 
 	std::ofstream file(filename);
 
 	writeLegacyHeader(file, filename, false);
 
 	file << "DATASET POLYDATA" << std::endl;
-	file << "POINTS " << mesh.n_vertices() << " float" << std::endl;
+	file << "POINTS " << conn.n_vertices() << " float" << std::endl;
 
-	for (const auto& v : mesh.vertices()) {
-
-		const Mesh::Point& p = mesh.point(v);
-		file << p[0] << " " << p[1] << " " << p[2] << "\n";
+	for (const auto& v : conn.vertices()) {
+		file << point(v) << "\n";
 	}
 
-	file << "POLYGONS " << mesh.n_faces() << " " << mesh.n_faces() * 4 << std::endl;
+	file << "POLYGONS " << conn.n_faces() << " " << conn.n_faces() * 4 << std::endl;
 
-	for (const auto& f : mesh.faces()) {
+	for (const auto& f : conn.faces()) {
 
 		file << "3";
 		for (const auto& v : f.vertices()) {
@@ -139,6 +140,8 @@ void writeLegacyVTK(const std::string& filename, const Mesh& mesh) {
 	}
 
 	file.close();
+}
+
 }
 
 }
