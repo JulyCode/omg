@@ -8,7 +8,14 @@ namespace omg {
 SizeFunction::SizeFunction(const AxisAlignedBoundingBox& aabb, const size2_t& grid_size)
     : ScalarField(aabb, grid_size), max(0) {}
 
-SizeFunction::~SizeFunction() {}
+
+SizeFunction::SizeFunction(const ScalarField<real_t>& scalar_field) : ScalarField(scalar_field) {
+    find_max();
+}
+
+SizeFunction::SizeFunction(ScalarField<real_t>&& scalar_field) : ScalarField(scalar_field) {
+    find_max();
+}
 
 bool SizeFunction::isTriangleGood(const vec2_t& v0, const vec2_t& v1, const vec2_t& v2) const {
     const real_t s0 = getValue(v0);
@@ -24,6 +31,13 @@ bool SizeFunction::isTriangleGood(const vec2_t& v0, const vec2_t& v1, const vec2
     const real_t max_length = std::sqrt(std::max({length0, length1, length2}));
 
     return max_length < min_size * 1.3;
+}
+
+void SizeFunction::find_max() {
+    max = 0;
+    for (real_t v : grid()) {
+        max = std::max<real_t>(max, v);
+    }
 }
 
 }
