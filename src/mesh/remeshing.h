@@ -9,7 +9,7 @@ class IsotropicRemeshing {
 public:
     explicit IsotropicRemeshing(const SizeFunction& size, real_t min_size_factor = 0.6, real_t max_size_factor = 1.3);
 
-    void remesh(Mesh& mesh, unsigned int iterations = 10) const;
+    void remesh(Mesh& mesh, unsigned int iterations = 10, bool fix_boundary = false) const;
 
     static int computeOptimalValence(const OpenMesh::SmartVertexHandle& vh, const Mesh& mesh);
 
@@ -18,9 +18,9 @@ private:
     const real_t min_size_factor;
     const real_t max_size_factor;
 
-    void splitEdges(Mesh& mesh) const;
+    void splitEdges(Mesh& mesh, bool fix_boundary) const;
 
-    void collapseEdges(Mesh& mesh) const;
+    void collapseEdges(Mesh& mesh, bool fix_boundary) const;
     bool isCollinear(const Mesh& mesh, const OpenMesh::SmartHalfedgeHandle& heh,
                      const OpenMesh::SmartVertexHandle& vh) const;
 

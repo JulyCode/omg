@@ -11,7 +11,7 @@ namespace omg {
 IsotropicRemeshing::IsotropicRemeshing(const SizeFunction& size, real_t min_size_factor, real_t max_size_factor)
     : size(size), min_size_factor(min_size_factor), max_size_factor(max_size_factor) {}
 
-void IsotropicRemeshing::remesh(Mesh& mesh, unsigned int iterations) const {
+void IsotropicRemeshing::remesh(Mesh& mesh, unsigned int iterations, bool fix_boundary) const {
     ScopeTimer timer("Isotropic remeshing");
 
     mesh.request_vertex_status();
@@ -22,8 +22,8 @@ void IsotropicRemeshing::remesh(Mesh& mesh, unsigned int iterations) const {
 
         mesh.resetMarks();
 
-        splitEdges(mesh);
-		collapseEdges(mesh);
+        splitEdges(mesh, fix_boundary);
+		collapseEdges(mesh, fix_boundary);
 
         equalizeValences(mesh);
 
@@ -37,9 +37,13 @@ void IsotropicRemeshing::remesh(Mesh& mesh, unsigned int iterations) const {
 	mesh.release_face_status();
 }
 
-void IsotropicRemeshing::splitEdges(Mesh& mesh) const {
+void IsotropicRemeshing::splitEdges(Mesh& mesh, bool fix_boundary) const {
     int cnt = 0;
     for (const auto& eh : mesh.edges()) {
+
+        if (fix_boundary && eh.is_boundary()) {
+            continue;
+        }
 
         // incident points
 		const vec2_t& p0 = toVec2(mesh.point(eh.v0()));
@@ -62,9 +66,13 @@ void IsotropicRemeshing::splitEdges(Mesh& mesh) const {
     std::cout << cnt << " splits" << std::endl;
 }
 
-void IsotropicRemeshing::collapseEdges(Mesh& mesh) const {
+void IsotropicRemeshing::collapseEdges(Mesh& mesh, bool fix_boundary) const {
     int cnt = 0;
     for (const auto& eh : mesh.edges()) {
+
+        if (fix_boundary && eh.is_boundary()) {
+            continue;
+        }
 
         // incident points
 		const vec2_t& p0 = toVec2(mesh.point(eh.v0()));
@@ -97,6 +105,9 @@ void IsotropicRemeshing::collapseEdges(Mesh& mesh) const {
 
                 if (heh.from().is_boundary()) {  // avoid collapsing vertices of the boundary
                     heh = eh.h1();
+                }
+                if (heh.from().is_boundary()) {  // still boundary
+                    continue;
                 }
             }
 
