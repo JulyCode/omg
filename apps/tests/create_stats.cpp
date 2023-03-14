@@ -81,8 +81,8 @@ int main() {
     {
         omg::ReferenceSize sf(topo, resolution_north_atlantic);
 
-        omg::Boundary coast(topo, poly, sf);
-        coast.generate();
+        omg::BoundaryGenerator generator(topo, poly, sf);
+        omg::Boundary coast = generator.generate();
         if (coast.hasIntersections()) {
             std::cout << "boundary intersection" << std::endl;
         }
@@ -94,8 +94,8 @@ int main() {
         omg::ReferenceSize sf_limited(topo, resolution_north_atlantic);
         omg::fastGradientLimiting(sf_limited, 0.2);
 
-        omg::Boundary coast(topo, poly, sf_limited);
-        coast.generate();
+        omg::BoundaryGenerator generator(topo, poly, sf_limited);
+        omg::Boundary coast = generator.generate();
         if (coast.hasIntersections()) {
             std::cout << "boundary intersection" << std::endl;
         }
@@ -107,8 +107,8 @@ int main() {
         omg::ReferenceSize sf_marche(topo, resolution_north_atlantic);
         omg::jigsawGradientLimiting(sf_marche, 0.2);
 
-        omg::Boundary coast(topo, poly, sf_marche);
-        coast.generate();
+        omg::BoundaryGenerator generator(topo, poly, sf_marche);
+        omg::Boundary coast = generator.generate();
         if (coast.hasIntersections()) {
             std::cout << "boundary intersection" << std::endl;
         }

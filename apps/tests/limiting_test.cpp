@@ -41,8 +41,8 @@ int main() {
         omg::ReferenceSize sf(topo, resolution);
         omg::fastGradientLimiting(sf, limits[i]);
 
-        omg::Boundary coast(topo, poly, sf);
-        coast.generate();
+        omg::BoundaryGenerator generator(topo, poly, sf);
+        omg::Boundary coast = generator.generate();
 
         if (coast.hasIntersections()) {
             std::cout << "warning: boundary intersection" << std::endl;

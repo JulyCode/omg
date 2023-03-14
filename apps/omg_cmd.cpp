@@ -162,7 +162,7 @@ int main(int argc, char* args[]) {
     }
 
     std::cout << "Creating boundary ..." << std::endl;
-    omg::Boundary coast(topo, poly, sf);
+    omg::BoundaryGenerator generator(topo, poly, sf);
     const omg::real_t height = cfg["boundary"]["height"].get<omg::real_t>();
     bool ignore_islands = false;
     omg::real_t min_angle = 60;
@@ -173,7 +173,7 @@ int main(int argc, char* args[]) {
     if (cfg["boundary"].contains("min_angle")) {
         min_angle = cfg["boundary"]["min_angle"].get<omg::real_t>();
     }
-    coast.generate(height, ignore_islands, true, min_angle);
+    omg::Boundary coast = generator.generate(height, ignore_islands, true, min_angle);
 
     if (coast.hasIntersections()) {
 

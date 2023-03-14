@@ -76,8 +76,8 @@ int main() {
 
     //omg::io::writeLegacyVTK(DIR + "size_fkt_limited.vtk", sf, true);
 
-    omg::Boundary coast(topo, poly, sf);
-    coast.generate(0, false, true, 60);
+    omg::BoundaryGenerator generator(topo, poly, sf);
+    omg::Boundary coast = generator.generate(0, false, true, 60);
     //omg::io::writeLegacyVTK(DIR + "outer.vtk", omg::LineGraph(coast.getOuter()));
 
     if (coast.hasIntersections()) {

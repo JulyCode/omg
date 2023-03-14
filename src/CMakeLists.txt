@@ -10,7 +10,7 @@ target_link_libraries(OMG PRIVATE jigsaw-lib)
 
 target_link_libraries(OMG PRIVATE ${OPENMESH_LIBRARIES})
 target_compile_definitions(OMG PUBLIC _USE_MATH_DEFINES OM_STATIC_BUILD)
-target_include_directories(OMG PRIVATE ${OPENMESH_INCLUDE_DIR})
+target_include_directories(OMG PUBLIC ${OPENMESH_INCLUDE_DIR})
 
 target_link_libraries(OMG PRIVATE netcdf-cxx4) # TODO: HDF is missing
 
@@ -20,7 +20,7 @@ if(OpenMP_CXX_FOUND)
 endif()
 
 target_include_directories(OMG PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
-target_include_directories(OMG PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../external")
+target_include_directories(OMG PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../external")
 
 # enable all warnings
 if(MSVC)
