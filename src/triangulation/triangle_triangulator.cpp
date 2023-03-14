@@ -17,7 +17,7 @@ TriangleTriangulator::TriangleTriangulator(real_t min_angle) : min_angle(min_ang
 void TriangleTriangulator::generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh) {
     size_function = &size;
 
-    ScopeTimer timer("Triangle generate mesh");
+    //ScopeTimer timer("Triangle generate mesh");
 
     TriangleIn<jrs::triangulateio> in(boundary);
     TriangleOut<jrs::triangulateio> out;
@@ -31,7 +31,7 @@ void TriangleTriangulator::generateMesh(const Boundary& boundary, const SizeFunc
     // D: conforming Delaunay
     // q25: minimum angle of 25 degrees, maximum 180 - 2 * 25
     TriangleArgs args;
-    args.quiet = false;
+    args.quiet = true;
     args.zero_based = true;
     args.nobound = true;
     args.nopolywritten = true;
@@ -40,6 +40,9 @@ void TriangleTriangulator::generateMesh(const Boundary& boundary, const SizeFunc
     args.conformdel = true;
     args.quality = true;
     args.min_angle = min_angle;
+
+    // TODO: make this optional
+    args.nobisect = true;
 
     jrs::triangulate(args.toString(), &in.io, &out.io, nullptr);
 
