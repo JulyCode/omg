@@ -142,6 +142,10 @@ void JigsawTriangulator::generateMesh(const Boundary& boundary, const SizeFuncti
     jig._hfun_hmin = 0;
     jig._hfun_scal = JIGSAW_HFUN_ABSOLUTE;
 
+    if (jig._hfun_hmax == 0) {
+        throw std::runtime_error("size function maximum is zero");
+    }
+
     int retv = jigsaw(&jig, &coast, NULL, &h_fun.getJigsawMesh(), &mesh);
 
     if (retv != 0) {
