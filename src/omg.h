@@ -1,10 +1,12 @@
 #pragma once
 
 #include <analysis/aggregates.h>
+#include <analysis/assertions.h>
 #include <analysis/grid_compare.h>
 #include <analysis/mesh_quality.h>
 #include <analysis/size_gradient.h>
 
+#include <boundary/boundary_generator.h>
 #include <boundary/boundary.h>
 
 #include <geometry/line_graph.h>
