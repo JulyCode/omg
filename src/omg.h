@@ -14,7 +14,9 @@
 
 #include <io/bin32_reader.h>
 #include <io/csv_writer.h>
+#ifdef OMG_REQUIRE_NETCDF
 #include <io/nc_reader.h>
+#endif  // OMG_REQUIRE_NETCDF
 #include <io/nod2d_writer.h>
 #include <io/off_writer.h>
 #include <io/poly_reader.h>

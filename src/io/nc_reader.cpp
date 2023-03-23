@@ -1,4 +1,6 @@
 
+#ifdef OMG_REQUIRE_NETCDF
+
 #include "nc_reader.h"
 
 #include <netcdf>
@@ -374,3 +376,5 @@ BathymetryData readNetCDF(const std::string& filename, const AxisAlignedBounding
 
 }
 }
+
+#endif  // OMG_REQUIRE_NETCDF

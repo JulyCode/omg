@@ -5,6 +5,17 @@ project(OceanMeshGeneration LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-add_subdirectory(apps)
+option(OMG_REQUIRE_NETCDF "Require the netCDF library to read .nc files" OFF)
+
+option(OMG_BUILD_APPS "Build applications" OFF)
+
+if (OMG_BUILD_APPS)
+  if (NOT OMG_REQUIRE_NETCDF)
+    message( SEND_ERROR "NetCDF is required to build the applications" )
+  endif ()
+
+  add_subdirectory(apps)
+endif ()
+
 add_subdirectory(src)
 add_subdirectory(external)
