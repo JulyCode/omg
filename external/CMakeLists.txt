@@ -30,12 +30,15 @@ set(OPENMESH_DOCS false)
 
 FetchContent_Declare(
   netcdf-cxx4
-  GIT_REPOSITORY https://github.com/Unidata/netcdf-cxx4.git
-  GIT_TAG 162d78a8c4dc33379df746dfe232d0aaebc705db
+  GIT_REPOSITORY https://github.com/truenicfel/netcdf-cxx4.git
+  GIT_TAG a71484cb88872b7e4b1c5e2a85ef92849b71dce2
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/netcdf-cxx4"
 )
 OPTION(NCXX_ENABLE_TESTS "Enable tests. Run with 'make test'." OFF)
+option(NCXX_BUILD_TESTS "Build tests?" OFF)
+option(NCXX_BUILD_EXAMPLES "Build examples?" OFF)
 
+message("Fetching wo80_Triangle")
 FetchContent_MakeAvailable(jigsaw wo80_Triangle)
 
 find_package(OpenMesh)
@@ -46,14 +49,9 @@ else ()
   FetchContent_MakeAvailable(OpenMesh)
 endif ()
 
-if (OMG_REQUIRE_NETCDF)
-  #find_package(netCDFCxx)
-  if (netCDFCxx_FOUND)
-    message("netCDFCxx found")
-  else ()
-    message("Fetching netCDFCxx")
-    FetchContent_MakeAvailable(netcdf-cxx4)
-  endif ()
+if (OMG_BUILD_REQUIRE_NETCDF)
+  message("Fetching netCDFCxx")
+  FetchContent_MakeAvailable(netcdf-cxx4)
 endif ()
 
 add_subdirectory(wo80_Triangle/src)

@@ -12,8 +12,8 @@ target_link_libraries(OMG PUBLIC ${OPENMESH_LIBRARIES})
 target_compile_definitions(OMG PUBLIC _USE_MATH_DEFINES OM_STATIC_BUILD)
 target_include_directories(OMG PUBLIC ${OPENMESH_INCLUDE_DIR})
 
-if (OMG_REQUIRE_NETCDF)
-  target_link_libraries(OMG PRIVATE netcdf-cxx4) # TODO: HDF is missing
+if (OMG_BUILD_REQUIRE_NETCDF)
+  target_link_libraries(OMG PRIVATE netcdf-cxx4)
   target_compile_definitions(OMG PRIVATE OMG_REQUIRE_NETCDF)
 endif ()
 

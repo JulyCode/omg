@@ -8,6 +8,7 @@ FetchContent_Declare(
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/triangle"
 )
 
+message("Fetching triangle")
 FetchContent_MakeAvailable(triangle)
 
 project(JRSTriangle VERSION 1.6 LANGUAGES C CXX)
