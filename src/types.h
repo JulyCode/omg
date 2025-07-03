@@ -36,13 +36,47 @@ constexpr bool fitsInt(std::size_t s) {
     return s < static_cast<std::size_t>(std::numeric_limits<int>::max());
 }
 
+class AxisAlignedBoundingBox {
+public:
+    AxisAlignedBoundingBox() : min(std::numeric_limits<real_t>::max(), std::numeric_limits<real_t>::max()), max(-std::numeric_limits<real_t>::max(), -std::numeric_limits<real_t>::max()) {}
+    
+    AxisAlignedBoundingBox(const vec2_t& min, const vec2_t& max) : min(min), max(max) {}
 
-struct AxisAlignedBoundingBox {
-    vec2_t min, max;
+    AxisAlignedBoundingBox(const vec2_t& point) : min(point), max(point) {}
 
-    inline vec2_t center() const {
+    vec2_t size() const {
+        return max - min;
+    }
+
+    vec2_t center() const {
         return (min + max) / 2;
     }
+
+    real_t area() const {
+        return (max[0] - min[0]) * (max[1] - min[1]);
+    }
+
+    bool is_empty() const {
+        return min[0] > max[0] || min[1] > max[1];
+    }
+
+    AxisAlignedBoundingBox& operator+=(const AxisAlignedBoundingBox& other) {
+        min[0] = std::min(min[0], other.min[0]);
+        min[1] = std::min(min[1], other.min[1]);
+        max[0] = std::max(max[0], other.max[0]);
+        max[1] = std::max(max[1], other.max[1]);
+        return *this;
+    }
+
+    AxisAlignedBoundingBox operator+(const AxisAlignedBoundingBox& other) const {
+        AxisAlignedBoundingBox aabb = *this;
+        aabb += other;
+        return aabb;
+    }
+
+public:
+    vec2_t min;
+    vec2_t max;
 };
 
 }
