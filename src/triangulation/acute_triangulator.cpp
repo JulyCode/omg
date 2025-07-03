@@ -33,7 +33,7 @@ ACuteTriangulator::~ACuteTriangulator() {
     triangle_context_destroy(ctx);
 }
 
-void ACuteTriangulator::generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh) {
+void ACuteTriangulator::generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh, bool keep_boundary) {
     size_function = &size;
 
     TriangleIn<triangleio> in(boundary);

@@ -116,7 +116,7 @@ static void convertToMesh(const jigsaw_msh_t& jig_mesh, Mesh& out_mesh) {
     out_mesh.removeSeparatedSubmeshes();
 }
 
-void JigsawTriangulator::generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh) {
+void JigsawTriangulator::generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh, bool keep_boundary) {
     ScopeTimer timer("Jigsaw generate mesh");
 
     jigsaw_jig_t jig;

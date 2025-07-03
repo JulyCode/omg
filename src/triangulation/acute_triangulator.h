@@ -13,7 +13,7 @@ public:
     explicit ACuteTriangulator(real_t min_angle = 25, real_t max_angle = 120);
     ~ACuteTriangulator();
 
-    void generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh) override;
+    void generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh, bool keep_boundary = true) override;
 
 private:
     static const SizeFunction* size_function;

@@ -11,7 +11,7 @@ public:
     Triangulator() {}
     virtual ~Triangulator() {}
 
-    virtual void generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh) = 0;
+    virtual void generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh, bool keep_boundary = true) = 0;
 };
 
 }

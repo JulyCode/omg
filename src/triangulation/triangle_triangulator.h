@@ -9,7 +9,7 @@ class TriangleTriangulator : public Triangulator {
 public:
     explicit TriangleTriangulator(real_t min_angle = 33);
 
-    void generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh) override;
+    void generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh, bool keep_boundary = true) override;
 
 private:
     static const SizeFunction* size_function;

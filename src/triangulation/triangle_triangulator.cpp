@@ -14,7 +14,7 @@ TriangleTriangulator::TriangleTriangulator(real_t min_angle) : min_angle(min_ang
     jrs::set_triunsuitable_callback(triunsuitable);
 }
 
-void TriangleTriangulator::generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh) {
+void TriangleTriangulator::generateMesh(const Boundary& boundary, const SizeFunction& size, Mesh& out_mesh, bool keep_boundary) {
     size_function = &size;
 
     //ScopeTimer timer("Triangle generate mesh");
@@ -42,7 +42,7 @@ void TriangleTriangulator::generateMesh(const Boundary& boundary, const SizeFunc
     args.min_angle = min_angle;
 
     // TODO: make this optional
-    args.nobisect = true;
+    args.nobisect = keep_boundary;
 
     jrs::triangulate(args.toString(), &in.io, &out.io, nullptr);
 
