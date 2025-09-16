@@ -1,4 +1,18 @@
 
+#ifndef ANSI_DECLARATORS
+#define ANSI_DECLARATORS
+#endif
+#define REAL double
+#define VOID void
+#ifndef EXTERNAL_TEST
+#define EXTERNAL_TEST
+#endif
+#ifndef NO_TIMER
+#define NO_TIMER
+#endif
+
+#define TRILIBRARY
+
 // includes used in triangle.c must be outside of the namespace
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,11 +30,13 @@
 
 #define REAL double
 
+#include <functional>
+
 namespace jrs {  // wrap Triangle in a C++ namespace to avoid conflicts
 
-static int (*triunsuitable_callback) (REAL* v1, REAL* v2, REAL* v3, REAL area);  // callback function for external use
+static std::function<int(REAL*, REAL*, REAL*, REAL)> triunsuitable_callback;  // callback function for external use
 
-void set_triunsuitable_callback(int (*callback) (REAL* v1, REAL* v2, REAL* v3, REAL area))
+void set_triunsuitable_callback(std::function<int(REAL*, REAL*, REAL*, REAL)> callback)
 {
     triunsuitable_callback = callback;
 }
@@ -68,3 +84,4 @@ void trifree(void* memptr) {  // VOID* in triangle.c is defined as int*, but has
 }
 
 }
+
